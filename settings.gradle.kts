@@ -1,5 +1,8 @@
 pluginManagement {
     repositories {
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public/")
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -9,6 +12,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+
     }
 }
 dependencyResolutionManagement {
@@ -16,12 +20,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public/")
+        }
     }
 }
 
 rootProject.name = "GenUICompose"
- include(":app")
- include(":genui")
+include(":app")
+include(":genui")
 include(":genai_primitives")
 include(":genui_a2a")
 include(":json_schema_builder")

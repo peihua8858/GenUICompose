@@ -92,16 +92,16 @@ fun BoundBool(
         dataContext = dataContext,
         value = value,
         resolveFlow = { context, input ->
-             when (value) {
+            when (input) {
                 is Map<*, *> -> {
                     when {
-                        value["path"] is String -> {
-                            val path = value["path"] as String
+                        input["path"] is String -> {
+                            val path = input["path"] as String
                             dataContext.subscribe<Any?>(DataPath(path))
                                 .map { v: Any? -> v as? Boolean }
                         }
 
-                        value.containsKey("call") -> {
+                        input.containsKey("call") -> {
                             dataContext.resolve(value)
                                 .map { v: Any? -> v as? Boolean }
                         }
@@ -111,6 +111,40 @@ fun BoundBool(
                 }
 
                 else -> flowOf(value as? Boolean)
+            }
+        },
+        builder = builder
+    )
+}
+
+@Composable
+fun BoundList(
+    dataContext: DataContext,
+    value: Any?,
+    builder: @Composable (List<Any?>?) -> Unit,
+) {
+    BoundValue(
+        dataContext = dataContext,
+        value = value,
+        resolveFlow = { context, input ->
+            return@BoundValue if (input is Map<*, *>) {
+                when {
+                    input["path"] is String -> {
+                        val path = input["path"] as String
+                        dataContext.subscribe<List<Any?>>(DataPath(path))
+                    }
+
+                    input.containsKey("call") -> {
+                        dataContext.resolve(input)
+                            .map { it as? List<*> }
+                    }
+
+                    else -> flowOf(input as? List<Any?>)
+                }
+            } else if (input is List<*>) {
+                flowOf(input)
+            } else {
+                flowOf(null)
             }
         },
         builder = builder
