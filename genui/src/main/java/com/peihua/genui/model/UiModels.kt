@@ -3,7 +3,7 @@ package com.peihua.genui.model
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.primitives.surfaceIdKey
 import kotlinx.coroutines.flow.Flow
-import java.util.Date
+import java.time.Instant
 
 /**
  * A callback that is called when events are sent.
@@ -40,7 +40,7 @@ abstract class UiEvent(private val _json: JsonMap) {
     /**
      * The timestamp of when the event occurred.
      */
-    val timestamp: Date = Date(Date.parse(_json["timestamp"] as String));
+    val timestamp: Instant = Instant.parse(_json["timestamp"] as String);
 
     /**
      * Converts this event to a map, suitable for JSON serialization.
@@ -53,10 +53,16 @@ abstract class UiEvent(private val _json: JsonMap) {
  * Triggers a submission to the AI, such as tapping a button.
  */
 class UserActionEvent(json: JsonMap) : UiEvent(json) {
-    constructor(surfaceId: String? = null, name: String, sourceComponentId: String, timestamp: Date? = null, context: JsonMap? = null) : this(
+    constructor(
+        surfaceId: String? = null,
+        name: String,
+        sourceComponentId: String,
+        timestamp: Instant? = null,
+        context: JsonMap? = null,
+    ) : this(
         mapOf(
             "name" to name,
-            "timestamp" to (timestamp?.time ?: Date().time),
+            "timestamp" to (timestamp ?: Instant.now()),
             "surfaceId" to surfaceId,
             "sourceComponentId" to sourceComponentId,
             "context" to (context ?: mapOf()),
@@ -105,7 +111,7 @@ class DataContext : ExecutionContext {
         TODO("Not yet implemented")
     }
 
-    override fun nested(relativePath: DataPath): ExecutionContext {
+    override fun nested(relativePath: DataPath): DataContext {
         TODO("Not yet implemented")
     }
 

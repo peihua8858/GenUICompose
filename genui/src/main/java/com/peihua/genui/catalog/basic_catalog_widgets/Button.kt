@@ -9,6 +9,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import com.peihua.genui.model.A2uiSchemas
 import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.model.CatalogItemContext
@@ -132,7 +133,7 @@ object Button {
                     colors = buttonColors,
                 ) {
                     ProvideTextStyle(textStyle) {
-                        itemContext.buildChild(buttonData.child, null)
+                        itemContext.buildChild(Modifier,buttonData.child, null)
                     }
                 }
             } else {
@@ -146,7 +147,7 @@ object Button {
                     colors = buttonColors,
                 ) {
                     ProvideTextStyle(textStyle) {
-                        itemContext.buildChild(buttonData.child, null)
+                        itemContext.buildChild(Modifier,buttonData.child, null)
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package com.peihua.genui.model
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.peihua.json.schema.Schema
 
 /**
@@ -10,7 +11,7 @@ typealias GetComponentCallback = (componentId: String) -> Component?;
 /**
  * A callback that builds a child widget for a catalog item.
  */
-typealias ChildBuilderCallback = @Composable (id: String, dataContext: DataContext?) -> Unit
+typealias ChildBuilderCallback = @Composable (modifier: Modifier, id: String, dataContext: DataContext?) -> Unit
 
 typealias ExampleBuilderCallback = () -> String;
 typealias CatalogWidgetBuilder = @Composable (itemContext: CatalogItemContext) -> Unit;

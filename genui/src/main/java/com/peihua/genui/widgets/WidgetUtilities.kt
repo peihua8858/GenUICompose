@@ -86,7 +86,7 @@ fun BoundString(
 fun BoundBool(
     dataContext: DataContext,
     value: Any?,
-    builder: @Composable (Boolean?) -> Unit
+    builder: @Composable (Boolean?) -> Unit,
 ) {
     BoundValue(
         dataContext = dataContext,
@@ -143,6 +143,38 @@ fun BoundList(
                 }
             } else if (input is List<*>) {
                 flowOf(input)
+            } else {
+                flowOf(null)
+            }
+        },
+        builder = builder
+    )
+}
+
+@Composable
+fun BoundObject(
+    dataContext: DataContext,
+    value: Any?,
+    builder: @Composable (Any?) -> Unit,
+) {
+    BoundValue(
+        dataContext = dataContext,
+        value = value,
+        resolveFlow = { context, input ->
+            return@BoundValue if (input is Map<*, *>) {
+                when {
+                    input["path"] is String -> {
+                        val path = input["path"] as String
+                        dataContext.subscribe<Any?>(DataPath(path))
+                    }
+
+                    input.containsKey("call") -> {
+                        dataContext.resolve(input)
+                            .map { it as? Any }
+                    }
+
+                    else -> flowOf(input as? Any?)
+                }
             } else {
                 flowOf(null)
             }

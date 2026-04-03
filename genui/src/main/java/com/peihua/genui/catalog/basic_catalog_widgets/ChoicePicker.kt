@@ -1,11 +1,21 @@
 package com.peihua.genui.catalog.basic_catalog_widgets
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,8 +23,14 @@ import androidx.compose.ui.unit.sp
 import com.peihua.genui.model.A2uiSchemas
 import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.model.CatalogItemContext
+import com.peihua.genui.model.DataPath
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.widgets.BoundList
+import com.peihua.genui.widgets.BoundObject
+import com.peihua.genui.widgets.BoundString
+import com.peihua.genui.widgets.CheckboxListTile
+import com.peihua.genui.widgets.ListTileControlAffinity
+import com.peihua.genui.widgets.RadioListTile
 import com.peihua.json.schema.S
 
 data class ChoicePickerData(private val _json: JsonMap) {
@@ -138,7 +154,153 @@ fun _ChoicePicker(
     itemContext: CatalogItemContext,
     isMutuallyExclusive: Boolean,
     isChips: Boolean,
-    filterable: Boolean
+    filterable: Boolean,
 ) {
+    val _filter = remember { mutableStateOf("") }
+    if (label != null) {
+        Column(modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)) {
+            BoundString(itemContext.dataContext, label) { label ->
+                if (label == null || label.isEmpty()) {
+                    Box(modifier = Modifier)
+                } else {
+                    Text(text = label, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+    }
+    if (filterable) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            TextField(
+                value = _filter.value,
+                trailingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Filter options")
+                },
+                onValueChange = { _filter.value = it })
+        }
+    }
+    BoundObject(
+        itemContext.dataContext,
+        value = { "path" to path }
+    ) { currentSelections ->
+        var effectiveSelections = currentSelections;
+        if (effectiveSelections == null) {
+            if (valueRef is List<*>) {
+                effectiveSelections = valueRef;
+            } else if (valueRef is String) {
+                effectiveSelections = listOf(valueRef);
+            }
+        } else if (effectiveSelections !is List<*>) {
+            effectiveSelections = listOf(effectiveSelections);
+        }
+        val currentStrings = (effectiveSelections as? List<*>)?.map { e -> e.toString() }?.toList() ?: listOf<String>()
+        if (options.isNullOrEmpty()) {
+            Box(modifier = Modifier)
+        } else {
+            val castOptions = options as List<JsonMap>
+            LazyColumn {
+                items(castOptions) { item ->
+                    val optionValue = item["value"] as String;
+                    BoundString(
+                        itemContext.dataContext,
+                        value = item["label"]
+                    ) { label ->
+                        if (filterable &&
+                            _filter.value.isNotEmpty() &&
+                            label != null &&
+                            !label.lowercase().contains(_filter.value.lowercase())
+                        ) {
+                            Box(modifier = Modifier)
+                        } else if (isChips) {
+                            val selected = currentStrings.contains(optionValue);
+                            Box(modifier = Modifier.padding(4.dp)) {
+                                FilterChip(
+                                    selected = selected,
+                                    label = { Text(label ?: "") },
+                                    onClick = {
+                                        _updateSelection(
+                                            itemContext,
+                                            path,
+                                            isMutuallyExclusive,
+                                            selected,
+                                            optionValue,
+                                            currentStrings,
+                                        );
+                                    }
+                                )
+                            }
+                        } else if (isMutuallyExclusive) {
+                            val groupValue = if (currentStrings.isNotEmpty()) currentStrings.first() else null
+                            RadioListTile<String>(
+                                checked = currentStrings.contains(optionValue),
+                                controlAffinity = ListTileControlAffinity.leading,
+                                dense = true,
+                                title = { Text(label ?: "") },
+                                value = optionValue,
+                                // ignore: deprecated_member_use
+                                groupValue = groupValue,
+                                // ignore: deprecated_member_use
+                                onChanged = { newValue ->
+                                    if (newValue != null) {
+                                        itemContext.dataContext.update(
+                                            DataPath(path),
+                                            listOf(newValue),
+                                        );
+                                    }
+                                },
+                            );
+                        } else {
+                            CheckboxListTile(
+                                checked = currentStrings.contains(optionValue),
+                                controlAffinity = ListTileControlAffinity.leading,
+                                onCheckedChange = { newValue ->
+                                    _updateSelection(
+                                        itemContext,
+                                        path,
+                                        isMutuallyExclusive,
+                                        newValue == true,
+                                        optionValue,
+                                        currentStrings,
+                                    );
+                                }
+                            ) {
+                                Text(label ?: "")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
+}
+
+fun _updateSelection(
+    itemContext: CatalogItemContext,
+    path: String,
+    isMutuallyExclusive: Boolean = false,
+    selected: Boolean,
+    optionValue: String, currentStrings: List<String>,
+) {
+    if (isMutuallyExclusive) {
+        if (selected) {
+            itemContext.dataContext.update(
+                DataPath(path), listOf(
+                    optionValue,
+                )
+            )
+        }
+    } else {
+        val newSelections = currentStrings.toMutableList();
+        if (selected) {
+            if (!newSelections.contains(optionValue)) {
+                newSelections.add(optionValue);
+            }
+        } else {
+            newSelections.remove(optionValue);
+        }
+        itemContext.dataContext.update(
+            DataPath(path),
+            newSelections,
+        );
+    }
 }

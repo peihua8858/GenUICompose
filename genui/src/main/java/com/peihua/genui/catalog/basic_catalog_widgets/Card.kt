@@ -54,7 +54,7 @@ object Card {
                     containerColor = MaterialTheme.colorScheme.surface,
                 )
             ) {
-                itemContext.buildChild(cardData.child, null)
+                itemContext.buildChild(Modifier,cardData.child, null)
             }
         },
         exampleData = listOf(
