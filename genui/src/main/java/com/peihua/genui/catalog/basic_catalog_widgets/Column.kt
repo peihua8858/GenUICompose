@@ -11,7 +11,7 @@ import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.model.DataPath
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.json.schema.S
-
+import kotlin.collections.List
 data class ColumnData(private val _json: JsonMap) {
     val children: Any? = _json["children"]
     val justify: String?
@@ -108,7 +108,7 @@ object Column {
                             val isImplicitlyFlexible = itemContext.getCatalogItem(getComponent(childId)?.type ?: "")?.isImplicitlyFlexible == true
                             val weight = explicitWeight ?: (if (isImplicitlyFlexible) 1 else null)
                             val fit = explicitWeight != null
-                            buildWeightedChild(modifier, childId, dataContext, buildChild, weight, fit)
+                            BuildWeightedChild(modifier, childId, dataContext, buildChild, weight, fit)
                         }
                     }
                 },
@@ -140,7 +140,7 @@ object Column {
                             Modifier
                         }
                         for ((index, value) in values.withIndex()) {
-                            buildWeightedChild(
+                            BuildWeightedChild(
                                 modifier = modifier,
                                 componentId = componentId,
                                 dataContext = itemContext.dataContext.nested(DataPath("$dataBinding/${keys[index]}")),

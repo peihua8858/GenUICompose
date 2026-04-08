@@ -9,4 +9,4 @@ typealias JsonMap = Map<String, Any?>;
 const val surfaceIdKey = "surfaceId";
 
 /// Generates a unique ID (UUID v4).
-fun generateId(): String =  Uuid().v4();
+//fun generateId(): String =  Uuid().v4();

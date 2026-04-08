@@ -57,7 +57,7 @@ import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.widgets.BoundString
 import com.peihua.json.schema.S
-
+import kotlin.collections.List
 object Icon {
     val _schema = S.obj(
         description = "Displays an icon from a set of available icons.",

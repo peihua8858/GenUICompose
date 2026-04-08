@@ -182,3 +182,12 @@ fun BoundObject(
         builder = builder
     )
 }
+
+@Composable
+fun BoundNumber(
+    dataContext: DataContext,
+    value: Any?,
+    builder: @Composable (Any?) -> Unit,
+) {
+
+}

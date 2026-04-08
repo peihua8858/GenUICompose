@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowColumnScope
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import com.peihua.genui.model.DataContext
 import com.peihua.genui.model.GetComponentCallback
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.widgets.BoundObject
+import kotlin.collections.List
 
 /**
  * Builder function for creating a widget from a template and a list of data.
@@ -75,8 +77,35 @@ fun ComponentChildrenBuilder(
 /// in the component.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun FlowColumnScope.buildWeightedChild(
-    modifier: Modifier,
+fun FlowColumnScope.BuildWeightedChild(
+    modifier: Modifier = Modifier,
+    componentId: String,
+    dataContext: DataContext,
+    buildChild: ChildBuilderCallback,
+    weight: Int?,
+    fit: Boolean = false,
+    key: Any? = null,
+) {
+    val child: @Composable () -> Unit = {
+        if (weight != null) {
+            Box(modifier = Modifier.weight(weight.toFloat(), fill = fit)) {
+                buildChild(Modifier, componentId, dataContext)
+            }
+        } else {
+            buildChild(modifier, componentId, dataContext)
+        }
+    }
+    if (key != null) {
+        key(key) { child() }
+    } else {
+        child()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun FlowRowScope.BuildWeightedChild(
+    modifier: Modifier = Modifier,
     componentId: String,
     dataContext: DataContext,
     buildChild: ChildBuilderCallback,

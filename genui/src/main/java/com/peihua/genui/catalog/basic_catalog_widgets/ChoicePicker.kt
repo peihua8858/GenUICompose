@@ -32,7 +32,7 @@ import com.peihua.genui.widgets.CheckboxListTile
 import com.peihua.genui.widgets.ListTileControlAffinity
 import com.peihua.genui.widgets.RadioListTile
 import com.peihua.json.schema.S
-
+import kotlin.collections.List
 data class ChoicePickerData(private val _json: JsonMap) {
     val label: Any?
         get() = _json["label"]
@@ -127,7 +127,7 @@ object ChoicePicker {
                             )
                         }
                     } else {
-                        _ChoicePicker(
+                        ChoicePicker(
                             label = data.label,
                             options = options,
                             valueRef = valueRef,
@@ -146,7 +146,7 @@ object ChoicePicker {
 }
 
 @Composable
-fun _ChoicePicker(
+fun ChoicePicker(
     label: Any?,
     options: List<Any?>?,
     valueRef: Any,

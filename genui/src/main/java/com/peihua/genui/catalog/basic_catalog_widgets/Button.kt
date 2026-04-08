@@ -21,7 +21,7 @@ import com.peihua.json.schema.S
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-
+import kotlin.collections.List
 fun ButtonData(child: String, action: JsonMap, variant: String? = null, checks: List<JsonMap>? = null): ButtonData {
     return ButtonData(mapOf("child" to child, "action" to action, "variant" to variant, "checks" to checks));
 }

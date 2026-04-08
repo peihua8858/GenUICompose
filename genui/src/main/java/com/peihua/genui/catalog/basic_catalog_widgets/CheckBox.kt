@@ -25,7 +25,7 @@ import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.widgets.BoundBool
 import com.peihua.genui.widgets.BoundString
 import com.peihua.json.schema.S
-
+import kotlin.collections.List
 fun CheckBoxData(label: JsonMap, value: JsonMap, checks: List<JsonMap>? = null): JsonMap {
     return mapOf(
         "label" to label,

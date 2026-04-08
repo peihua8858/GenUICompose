@@ -49,7 +49,7 @@ data class CatalogItemContext(
     val buildChild: ChildBuilderCallback,
     /** Callback to dispatch UI events (e.g., button taps) back to the system.**/
     val dispatchEvent: DispatchEventCallback,
-    /** The Flutter [BuildContext] for this widget.**/
+//    /** The Flutter [BuildContext] for this widget.**/
 //    val buildContext: BuildContext,
     /** The [DataContext] for accessing and modifying the data model.**/
     val dataContext: DataContext,

@@ -49,4 +49,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    var markdown = "0.39.2"
+    implementation("com.mikepenz:multiplatform-markdown-renderer:${markdown}")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:${markdown}")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-code:${markdown}")
+    // Offers coil2 (Coil2ImageTransformerImpl)
+    implementation("com.mikepenz:multiplatform-markdown-renderer-coil3:${markdown}")
 }
