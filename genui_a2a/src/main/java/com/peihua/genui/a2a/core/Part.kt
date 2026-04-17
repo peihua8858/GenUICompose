@@ -1,6 +1,7 @@
 package com.peihua.genui.a2a.core
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 interface Part {
     /// The type discriminator, always 'text'.
@@ -47,11 +48,11 @@ interface FileType {
     val mimeType: String?
 
     companion object {
-        fun uri(uri: String, name: String?, mimeType: String?): FileType {
+        fun uri(uri: String, name: String? = null, mimeType: String? = null): FileType {
             return FileWithUri(uri, name, mimeType)
         }
 
-        fun bytes(bytes: String, name: String?, mimeType: String?): FileType {
+        fun bytes(bytes: String, name: String?=null, mimeType: String?=null): FileType {
             return FileWithBytes(bytes, name, mimeType)
         }
     }
@@ -64,8 +65,10 @@ data class FileWithUri(val uri: String, override val name: String?, override val
 data class FileWithBytes(val bytes: String, override val name: String?, override val mimeType: String?) : FileType
 
 @Serializable
-data class TextPart(override val kind: String, val text: String, override val metadata: Map<String, Any?>?) : Part
+data class TextPart(override val kind: String, val text: String, override val metadata: JsonObject?) : Part
+
 @Serializable
-data class FilePart(override val kind: String, val file: FileType, override val metadata: Map<String, Any?>?) : Part
+data class FilePart(override val kind: String, val file: FileType, override val metadata: JsonObject?) : Part
+
 @Serializable
-data class DataPart(override val kind: String, val data: Map<String, Any?>, override val metadata: Map<String, Any?>?) : Part
+data class DataPart(override val kind: String, val data: JsonObject, override val metadata: JsonObject?) : Part

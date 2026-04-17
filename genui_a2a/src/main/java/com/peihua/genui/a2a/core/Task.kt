@@ -1,6 +1,19 @@
 package com.peihua.genui.a2a.core
 
+import com.peihua.json.AnyValueSerializer
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.serialDescriptor
+import kotlinx.serialization.encoding.CompositeDecoder
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
+import kotlinx.serialization.serializer
 
 @Serializable
 data class Task(
@@ -28,7 +41,7 @@ data class Task(
 
     /** Optional metadata for extensions, as a map where the key is an
      * extension-specific identifier.*/
-    val metadata: Map<String, Any?>?,
+    val metadata: Map<String, @Serializable(with = AnyValueSerializer::class) Any>,
 
     /** The timestamp of the last update to the task, in milliseconds since the
      * Unix epoch.*/
@@ -51,6 +64,7 @@ data class TaskStatus(
      * Unix epoch.*/
     val timestamp: String?,
 )
+
 @Serializable
 enum class TaskState {
     /** The task has been received by the server but not yet started. */
@@ -101,10 +115,76 @@ data class Artifact(
     val parts: List<Part>,
 
     /** Optional metadata for extensions.*/
-    val metadata: Map<String, Any?>?,
+    val metadata: Map<String, @Serializable(with = AnyValueSerializer::class) Any>,
 
     /** Optional list of URIs for extensions that are relevant to this artifact.*/
-    val extensions: List<String>?,
-) {
+    val extensions: List<String>,
+)
 
+object ArtifactSerializer : KSerializer<Artifact> {
+    override val descriptor: SerialDescriptor
+        get() = buildClassSerialDescriptor("Artifact") {
+            element("artifactId", serialDescriptor<String>())
+            element("name", serialDescriptor<String>())
+            element("description", serialDescriptor<String>())
+            element("parts", serialDescriptor<List<Part>>())
+            element("metadata", serialDescriptor<Map<String, Any>>())
+            element("extensions", serialDescriptor<List<String>>())
+        }
+
+    @Suppress("UNCHECKED_CAST")
+    private val dataTypeSerializers: Map<String, KSerializer<Map<String, Any>>> =
+        mapOf(
+            "String" to serializer<String>(),
+            "Int" to serializer<Int>(),
+            "Boolean" to serializer<Boolean>(),
+            "Float" to serializer<Float>(),
+            "Double" to serializer<Double>(),
+            //list them all
+        ).mapValues { (_, v) -> v as KSerializer<Map<String, Any>> }
+
+    private fun getPayloadSerializer(dataType: String): KSerializer<Map<String, Any>> = dataTypeSerializers[dataType]
+        ?: throw SerializationException("Serializer for class $dataType is not registered in PacketSerializer")
+
+    override fun serialize(encoder: Encoder, value: Artifact) {
+        encoder.encodeStructure(descriptor) {
+            encodeStringElement(descriptor, 0, value.artifactId)
+            encodeStringElement(descriptor, 1, value.name ?: "")
+            encodeStringElement(descriptor, 2, value.description ?: "")
+            encodeSerializableElement(descriptor, 3, serializer<List<Part>>(), value.parts)
+            encodeSerializableElement(descriptor, 4, getPayloadSerializer(value.artifactId), value.metadata)
+            encodeSerializableElement(descriptor, 5, serializer<List<String>>(), value.extensions)
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    override fun deserialize(decoder: Decoder): Artifact = decoder.decodeStructure(descriptor) {
+        if (decodeSequentially()) {
+            val artifactId = decodeStringElement(descriptor, 0)
+            val name = decodeStringElement(descriptor, 1)
+            val description = decodeStringElement(descriptor, 2)
+            val parts = decodeSerializableElement(descriptor, 3, serializer<List<Part>>())
+            val metadata = decodeSerializableElement(descriptor, 4, getPayloadSerializer(artifactId))
+            val extensions = decodeSerializableElement(descriptor, 5, serializer<List<String>>())
+            Artifact(artifactId, name, description, parts, metadata, extensions)
+        } else {
+            require(decodeElementIndex(descriptor) == 0) { "dataType field should precede payload field" }
+            val artifactId = decodeStringElement(descriptor, 0)
+            val name = decodeStringElement(descriptor, 1)
+            val description = decodeStringElement(descriptor, 2)
+            val parts = decodeSerializableElement(descriptor, 3, serializer<List<Part>>())
+            val metadata = when (val index = decodeElementIndex(descriptor)) {
+                4 -> decodeSerializableElement(
+                    descriptor, 4,
+                    getPayloadSerializer(artifactId)
+                )
+
+                CompositeDecoder.DECODE_DONE -> throw SerializationException("payload field is missing")
+                else -> error("Unexpected index: $index")
+            }
+            val extensions = decodeSerializableElement(descriptor, 5, serializer<List<String>>())
+            Artifact(artifactId, name, description, parts, metadata, extensions)
+        }
+
+    }
 }

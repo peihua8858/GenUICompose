@@ -59,7 +59,7 @@ fun BoundString(
                     when {
                         input["path"] is String -> {
                             val path = input["path"] as String
-                            context.subscribe<Any?>(DataPath(path)).map { it?.toString() }
+                            context.subscribe<Any>(DataPath(path)).map { it?.toString() }
                         }
 
                         input.containsKey("call") -> {

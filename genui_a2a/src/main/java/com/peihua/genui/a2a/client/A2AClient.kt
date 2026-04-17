@@ -4,10 +4,23 @@ import android.util.Log
 import com.peihua.genui.a2a.DefaultJson
 import com.peihua.genui.a2a.client.A2AClient.Companion.agentCardPath
 import com.peihua.genui.a2a.core.AgentCard
+import com.peihua.genui.a2a.core.Event
 import com.peihua.genui.a2a.core.Message
 import com.peihua.genui.a2a.core.Task
+import com.peihua.genui.a2a.sanitizeLogData
+import com.peihua.genui.utils.toInteger
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMap
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * A client for interacting with an A2A (Agent-to-Agent) server.
@@ -16,10 +29,10 @@ import kotlinx.serialization.json.decodeFromJsonElement
  * specification. It handles the JSON-RPC 2.0 protocol and uses a [Transport]
  * instance to communicate with the server, which defaults to [HttpTransport].
  **/
-fun _exceptionFrom(error: Map<String, Any?>): A2AException {
-    val code = error["code"] as Int
-    val message = error["message"] as String
-    val data = error["data"] as Map<String, Any?>?
+fun _exceptionFrom(error: JsonObject): A2AException {
+    val code = error["code"].toInteger()
+    val message = error["message"].toString()
+    val data = error["data"]?.jsonObject
 
     return when (code) {
         -32001 -> A2AException.taskNotFound(message = message, data = data)
@@ -101,9 +114,84 @@ class A2AClient(private val url: String, private val transport: Transport) {
         val response = transport.send(messageMap, headers = headers);
         Log.d("A2AClient", "Received response from message/send: $response");
         if (response.containsKey("error")) {
-            throw _exceptionFrom(response["error"] as Map<String, Any?>);
+            throw _exceptionFrom(response["error"]!!.jsonObject);
         }
         return DefaultJson.decodeFromJsonElement(response["result"]!!);
+    }
+
+    suspend fun messageStream(message: Message): Flow<Event> {
+        Log.i("", "Sending message for stream: ${message.messageId}");
+        val params = mutableMapOf<String, Any?>(
+            "configuration" to null,
+            "metadata" to null,
+            "message" to Json.encodeToString(message),
+        )
+        if (message.extensions != null) {
+            params["extensions"] = message.extensions;
+        }
+        val messageMap = mutableMapOf<String, Any?>(
+            "jsonrpc" to "2.0",
+            "method" to "message/stream",
+            "params" to params,
+            "id" to _requestId++,
+        );
+        val headers = mutableMapOf<String, String>();
+        if (message.extensions != null) {
+            headers["X-A2A-Extensions"] = message.extensions.joinToString(",");
+        }
+        val stream = transport.sendStream(messageMap, headers = headers)
+        return stream.transform { data ->
+            try {
+                Log.d("", "Received event from stream: ${sanitizeLogData(data)}")
+            } catch (e: Exception) {
+                Log.w("", "Error logging event from stream: $e")
+            }
+            if ("error" in data) {
+                val error = data["error"]?.jsonObject
+                    ?: throw IllegalStateException("Invalid error payload")
+                throw _exceptionFrom(error)
+            } else {
+                val kind = data["kind"]?.jsonPrimitive?.contentOrNull
+                if (kind != null) {
+                    if (kind == "task") {
+                        val task = Json.decodeFromJsonElement<Task>(data)
+                        emit(
+                            Event.statusUpdate(
+                                taskId = task.id,
+                                contextId = task.contextId,
+                                status = task.status,
+                                final = false
+                            )
+                        )
+                    } else {
+                        emit(Event.fromJson(data))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Retrieves the current state of a task from the server using `tasks/get`.
+    ///
+    /// This method is used to poll the status of a task, identified by [taskId],
+    /// that was previously initiated (e.g., via [messageSend]).
+    ///
+    /// Returns the current [Task] state. Throws an [A2AException] if the server
+    /// returns a JSON-RPC error (e.g., task not found).
+    suspend fun getTask(taskId: String): Task {
+        Log.i("", "Getting task: $taskId");
+        val params = mapOf(
+            "jsonrpc" to "2.0",
+            "method" to "tasks/get",
+            "params" to mapOf("id" to taskId),
+            "id" to _requestId++,
+        )
+        val response = transport.send(params);
+        Log.i("", "Received response from tasks/get: $response");
+        if (response.containsKey("error")) {
+            throw _exceptionFrom(response["error"]!!.jsonObject);
+        }
+        return Json.decodeFromJsonElement(response["result"]!!);
     }
 
     companion object {

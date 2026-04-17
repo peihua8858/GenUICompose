@@ -39,7 +39,7 @@ interface Transport {
      * (containing a `result`) or resulted in an error (containing an `error`).
      * Throws an `A2AException` for transport-level failures.
      **/
-    suspend fun send(request: Map<String, Any?>, path: String = "", headers: Map<String, String>): JsonObject
+    suspend fun send(request: Map<String, Any>, path: String = "", headers: Map<String, String> = mapOf()): JsonObject
 
     /**
      * Sends a JSON-RPC request to the server and initiates a stream of

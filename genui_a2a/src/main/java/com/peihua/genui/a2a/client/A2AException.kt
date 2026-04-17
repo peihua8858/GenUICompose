@@ -1,5 +1,7 @@
 package com.peihua.genui.a2a.client
 
+import kotlinx.serialization.json.JsonObject
+
 abstract class A2AException(message: String? = "") : Exception(message) {
     companion object {
         /**
@@ -17,17 +19,17 @@ abstract class A2AException(message: String? = "") : Exception(message) {
         fun network(message: String): A2ANetworkException = A2ANetworkException(message)
         fun unsupported(message: String): A2AUnsupportedException = A2AUnsupportedException(message)
         fun parsing(message: String): A2AParsingException = A2AParsingException(message)
-        fun taskNotFound(message: String, data: Map<String, Any?>?): A2ATaskNotFoundException = A2ATaskNotFoundException(message, data)
-        fun taskNotCancelable(message: String, data: Map<String, Any?>?): A2ATaskNotCancelableException =
+        fun taskNotFound(message: String, data: JsonObject?): A2ATaskNotFoundException = A2ATaskNotFoundException(message, data)
+        fun taskNotCancelable(message: String, data: JsonObject?): A2ATaskNotCancelableException =
             A2ATaskNotCancelableException(message, data)
 
-        fun pushNotificationNotSupported(message: String, data: Map<String, Any?>?): A2APushNotificationNotSupportedException =
+        fun pushNotificationNotSupported(message: String, data: JsonObject?): A2APushNotificationNotSupportedException =
             A2APushNotificationNotSupportedException(message, data)
 
-        fun pushNotificationConfigNotFound(message: String, data: Map<String, Any?>?): A2APushNotificationConfigNotFoundException =
+        fun pushNotificationConfigNotFound(message: String, data: JsonObject?): A2APushNotificationConfigNotFoundException =
             A2APushNotificationConfigNotFoundException(message, data)
 
-        fun jsonRpc(code: Int, message: String, data: Map<String, Any?>?): A2AJsonRpcException = A2AJsonRpcException(code, message, data)
+        fun jsonRpc(code: Int, message: String, data: JsonObject?): A2AJsonRpcException = A2AJsonRpcException(code, message, data)
 
     }
 }
