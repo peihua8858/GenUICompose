@@ -79,7 +79,7 @@ object Icon {
      */
     val icon = CatalogItem(
         name = "Icon",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             return@CatalogItem BoundString(
                 dataContext = itemContext.dataContext,

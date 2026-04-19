@@ -84,7 +84,7 @@ object Column {
     @OptIn(ExperimentalLayoutApi::class)
     val column = CatalogItem(
         name = "Column",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val columnData = ColumnData(itemContext.data as JsonMap);
             return@CatalogItem ComponentChildrenBuilder(

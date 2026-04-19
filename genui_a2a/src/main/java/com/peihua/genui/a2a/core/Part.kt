@@ -1,14 +1,19 @@
 package com.peihua.genui.a2a.core
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonObject
 
+@Serializable(with = PartSerializer::class)
 interface Part {
     /// The type discriminator, always 'text'.
     val kind: String
 
     /// Optional metadata associated with this text part.
-    val metadata: Map<String, Any?>?
+    val metadata: JsonObject?
 
     companion object {
         fun text(
@@ -16,7 +21,7 @@ interface Part {
             kind: String = "text",
             text: String,
             // Optional metadata associated with this text part.
-            metadata: Map<String, Any?>? = null,
+            metadata: JsonObject? = null,
         ): TextPart {
             return TextPart(kind, text, metadata)
         }
@@ -26,7 +31,7 @@ interface Part {
             kind: String = "file",
             file: FileType,
             // Optional metadata associated with this file part.
-            metadata: Map<String, Any?>? = null,
+            metadata: JsonObject? = null,
         ): FilePart {
             return FilePart(kind, file, metadata)
         }
@@ -34,9 +39,9 @@ interface Part {
         fun data(
             // The type discriminator, always 'data'.
             kind: String = "data",
-            data: Map<String, Any?>,
+            data: JsonObject,
             // Optional metadata associated with this data part.
-            metadata: Map<String, Any?>? = null,
+            metadata: JsonObject? = null,
         ): DataPart {
             return DataPart(kind, data, metadata)
         }
@@ -65,10 +70,24 @@ data class FileWithUri(val uri: String, override val name: String?, override val
 data class FileWithBytes(val bytes: String, override val name: String?, override val mimeType: String?) : FileType
 
 @Serializable
-data class TextPart(override val kind: String, val text: String, override val metadata: JsonObject?) : Part
+data class TextPart(override val kind: String, val text: String, override val metadata: JsonObject?=null) : Part
 
 @Serializable
-data class FilePart(override val kind: String, val file: FileType, override val metadata: JsonObject?) : Part
+data class FilePart(override val kind: String, val file: FileType, override val metadata: JsonObject?=null) : Part
 
 @Serializable
-data class DataPart(override val kind: String, val data: JsonObject, override val metadata: JsonObject?) : Part
+data class DataPart(override val kind: String, val data: JsonObject, override val metadata: JsonObject?=null) : Part
+
+class PartSerializer : KSerializer<Part> {
+    override val descriptor: SerialDescriptor
+        get() = TODO("Not yet implemented")
+
+    override fun serialize(encoder: Encoder, value: Part) {
+        TODO("Not yet implemented")
+    }
+
+    override fun deserialize(decoder: Decoder): Part {
+        TODO("Not yet implemented")
+    }
+
+}

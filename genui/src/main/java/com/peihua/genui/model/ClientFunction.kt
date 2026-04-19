@@ -3,6 +3,7 @@ package com.peihua.genui.model
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.json.schema.Schema
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 
 /**
@@ -124,4 +125,26 @@ interface ClientFunction {
      * or interact with the `DataModel` if necessary (e.g. `subscribeToValue`).
      */
     fun execute(args: JsonMap, context: ExecutionContext): Flow<Any?>;
+}
+
+
+/**
+ * A base class for synchronous client functions.
+ *
+ * Implementers should override [executeSync] to provide the synchronous logic.
+ */
+abstract class SynchronousClientFunction : ClientFunction {
+
+    override fun execute(args: JsonMap, context: ExecutionContext): Flow<Any?> = flow {
+        try {
+            emit(executeSync(args, context))
+        } catch (e: Exception) {
+            emit(e)
+        }
+    }
+
+    /**
+     * Executes the function synchronously.
+     */
+    abstract fun executeSync(args: JsonMap, context: ExecutionContext): Any?;
 }

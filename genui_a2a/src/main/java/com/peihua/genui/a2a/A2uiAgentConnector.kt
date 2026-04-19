@@ -1,31 +1,41 @@
 package com.peihua.genui.a2a
 
 import com.peihua.genai.primitives.ChatMessage
-import com.peihua.genai.primitives.parts.DataPart
-import com.peihua.genai.primitives.parts.LinkPart
-import com.peihua.genai.primitives.parts.TextPart
+import com.peihua.genui.ILogger
 import com.peihua.genui.a2a.client.A2AClient
 import com.peihua.genui.a2a.client.SseTransport
 import com.peihua.genui.a2a.core.AgentCard
+import com.peihua.genui.a2a.core.DataPart
 import com.peihua.genui.a2a.core.FileType
 import com.peihua.genui.a2a.core.Message
 import com.peihua.genui.a2a.core.Part
 import com.peihua.genui.a2a.core.Role
+import com.peihua.genui.a2a.core.StatusUpdate
+import com.peihua.genui.a2a.core.Task
+import com.peihua.genui.a2a.core.TaskState
+import com.peihua.genui.a2a.core.TaskStatusUpdate
+import com.peihua.genui.a2a.core.TextPart
 import com.peihua.genui.model.A2UiClientCapabilities
 import com.peihua.genui.model.A2uiMessage
 import com.peihua.genui.model.parts.asUiInteractionPart
 import com.peihua.genui.model.parts.asUiPart
 import com.peihua.genui.model.parts.isUiInteractionPart
 import com.peihua.genui.model.parts.isUiPart
-import com.peihua.genui.primitives.CancellationSignal
+import com.peihua.json.utils.toJsonString
+import com.peihua.json.utils.toJsonObject
+import com.peihua.json.utils.toMapOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 import java.net.URI
 import java.util.Base64
 import java.util.UUID
+import com.peihua.genai.primitives.parts.DataPart as GenUiDataPart
+import com.peihua.genai.primitives.parts.LinkPart as GenUiLinkPart
+import com.peihua.genai.primitives.parts.TextPart as GenUiTextPart
 
 val a2uiExtensionUri: URI = URI.create(
     "https://a2ui.org/a2a-extension/a2ui/v0.9"
@@ -33,6 +43,7 @@ val a2uiExtensionUri: URI = URI.create(
 
 class A2uiAgentConnector(
     val url: URI,
+    val logger: ILogger,
     client: A2AClient? = null,
     contextId: String? = null,
 ) {
@@ -85,6 +96,7 @@ class A2uiAgentConnector(
     suspend fun getAgentCard(): AgentCard {
         return client.getAgentCard()
     }
+
     /**
      * Connects to the agent and sends a message.
      *
@@ -100,20 +112,13 @@ class A2uiAgentConnector(
         chatMessage: ChatMessage,
         clientCapabilities: A2UiClientCapabilities? = null,
         clientDataModel: Map<String, Any?>? = null,
-        cancellationSignal: CancellationSignal? = null,
     ): String? {
-        cancellationSignal?.addListener {
-            taskId?.let {
-                client.cancelTask(it)
-            }
-        }
-
         val message = Message(
             messageId = UUID.randomUUID().toString(),
             role = Role.USER,
             parts = chatMessage.parts.map { part ->
                 when {
-                    part is TextPart -> {
+                    part is GenUiTextPart -> {
                         Part.text(text = part.text.value)
                     }
 
@@ -133,10 +138,10 @@ class A2uiAgentConnector(
 
                     part.isUiPart -> {
                         val uiPart = part.asUiPart!!
-                        Part.data(data = Json.decodeFromString(uiPart.definition))
+                        Part.data(data = Json.decodeFromJsonElement(uiPart.definition.toJson()))
                     }
 
-                    part is DataPart -> {
+                    part is GenUiDataPart -> {
                         Part.file(
                             file = FileType.bytes(
                                 bytes = Base64.getEncoder().encodeToString(part.bytes),
@@ -145,7 +150,7 @@ class A2uiAgentConnector(
                         )
                     }
 
-                    part is LinkPart -> {
+                    part is GenUiLinkPart -> {
                         Part.file(
                             file = FileType.uri(
                                 uri = part.url.toString(),
@@ -168,14 +173,12 @@ class A2uiAgentConnector(
                 referenceTaskIds = listOf(taskId!!)
             )
         }
-
         if (contextId != null) {
             messageToSend = messageToSend.copy(
                 contextId = contextId
             )
         }
-
-        val metadata = mutableMapOf<String, Any?>()
+        val metadata = mutableMapOf<String, Any>()
         if (clientCapabilities != null) {
             metadata["a2uiClientCapabilities"] = clientCapabilities.toJson()
         }
@@ -185,17 +188,16 @@ class A2uiAgentConnector(
         if (metadata.isNotEmpty()) {
             messageToSend = messageToSend.copy(metadata = metadata)
         }
-
-        log.info("--- OUTGOING REQUEST ---")
-        log.info("URL: $url")
-        log.info("Method: message/stream")
+        logger.iLog("--- OUTGOING REQUEST ---")
+        logger.iLog("URL: $url")
+        logger.iLog("Method: message/stream")
         try {
-            val payload = toPrettyJson(sanitizeLogData(messageToSend.toJson()))
-            log.info("Payload: $payload")
+            val payload = Json.encodeToString(sanitizeLogData(messageToSend.toMapOrNull()))
+            logger.iLog("Payload: $payload")
         } catch (e: Exception) {
-            log.warning("Error logging payload: $e")
+            logger.wLog("Error logging payload: $e")
         }
-        log.info("----------------------")
+        logger.iLog("----------------------")
 
         val events = client.messageStream(messageToSend)
 
@@ -205,9 +207,9 @@ class A2uiAgentConnector(
             var finalResponse: Message? = null
 
             events.collect { event ->
-                log.info("Received raw A2A event: ${event.toJson()}")
-                val prettyJson = toPrettyJson(event.toJson())
-                log.info("Received A2A event:\n$prettyJson")
+                logger.iLog("Received raw A2A event: ${event.toJsonString()}")
+                val prettyJson = event.toJsonString()
+                logger.iLog("Received A2A event:\n$prettyJson")
 
                 when (event) {
                     is TaskStatusUpdate -> {
@@ -221,7 +223,7 @@ class A2uiAgentConnector(
                             TaskState.REJECTED -> {
                                 val errorMessage =
                                     "A2A Error: ${event.status.state}: ${event.status.message}"
-                                log.severe(errorMessage)
+                                logger.iLog(errorMessage)
                                 _errorController.tryEmit(errorMessage)
                             }
 
@@ -230,16 +232,14 @@ class A2uiAgentConnector(
 
                         if (messageResp != null) {
                             finalResponse = messageResp
-                            log.info(
-                                "Received A2A Message:\n${toPrettyJson(messageResp.toJson())}"
-                            )
+                            logger.iLog("Received A2A Message:\n${messageResp.toJsonString()}")
                             for (part in messageResp.parts) {
                                 when (part) {
-                                    is Part.Data -> {
+                                    is DataPart -> {
                                         processA2uiMessages(part.data)
                                     }
 
-                                    is Part.Text -> {
+                                    is TextPart -> {
                                         val trimmedText = part.text.trim()
                                         if (trimmedText.isNotEmpty()) {
                                             _textController.tryEmit(trimmedText)
@@ -263,7 +263,7 @@ class A2uiAgentConnector(
                             TaskState.REJECTED -> {
                                 val errorMessage =
                                     "A2A Error: ${event.status.state}: ${event.status.message}"
-                                log.severe(errorMessage)
+                                logger.iLog(errorMessage)
                                 _errorController.tryEmit(errorMessage)
                             }
 
@@ -272,16 +272,14 @@ class A2uiAgentConnector(
 
                         if (messageResp != null) {
                             finalResponse = messageResp
-                            log.info(
-                                "Received A2A Message:\n${toPrettyJson(messageResp.toJson())}"
-                            )
+                            logger.iLog("Received A2A Message:\n${(messageResp.toJsonString())}")
                             for (part in messageResp.parts) {
                                 when (part) {
-                                    is Part.Data -> {
+                                    is DataPart -> {
                                         processA2uiMessages(part.data)
                                     }
 
-                                    is Part.Text -> {
+                                    is TextPart -> {
                                         val trimmedText = part.text.trim()
                                         if (trimmedText.isNotEmpty()) {
                                             _textController.tryEmit(trimmedText)
@@ -293,40 +291,42 @@ class A2uiAgentConnector(
                             }
                         }
                     }
+
+                    else -> {}
                 }
             }
 
             finalResponse?.let { response ->
                 for (part in response.parts) {
-                    if (part is Part.Text) {
+                    if (part is TextPart) {
                         responseText = part.text
                     }
                 }
             }
         } catch (e: Exception) {
-            log.severe("Error parsing A2A response: $e")
+            logger.eLog("Error parsing A2A response: $e")
         }
-
         return responseText
     }
+
     /**
      * Sends an event to the agent.
      *
      * This is used to send user interaction events to the agent, such as
      * button clicks or form submissions.
      */
-    suspend fun sendEvent(event: Map<String, Any?>) {
+    suspend fun sendEvent(event: Map<String, Any>) {
         if (taskId == null) {
-            log.severe("Cannot send event, no active task ID.")
+            logger.iLog("Cannot send event, no active task ID.")
             return
         }
 
-        val clientEvent = mutableMapOf<String, Any?>(
+        val eventParams = mutableMapOf(
             "version" to "v0.9",
-            "action" to mutableMapOf<String, Any?>(
+            "action" to mutableMapOf(
                 "name" to event["action"],
                 "sourceComponentId" to event["sourceComponentId"],
-                "timestamp" to Instant.now().toString(),
+                "timestamp" to java.time.Instant.now().toString(),
                 "context" to event["context"]
             ).apply {
                 if (event.containsKey("surfaceId")) {
@@ -334,10 +334,9 @@ class A2uiAgentConnector(
                 }
             }
         )
-
-        log.fine("Sending client event: $clientEvent")
-
-        val dataPart = Part.Data(data = clientEvent)
+        val clientEvent =  eventParams.toJsonObject()
+        logger.iLog("Sending client event: $clientEvent")
+        val dataPart = Part.data(data = clientEvent)
         val message = Message(
             role = Role.USER,
             parts = listOf(dataPart),
@@ -349,20 +348,20 @@ class A2uiAgentConnector(
 
         try {
             val response: Task = client.messageSend(message)
-            log.fine("Response: ${toPrettyJson(response.toJson())}")
-            log.fine("Successfully sent event for task $taskId (context $contextId)")
+            logger.iLog("Response: ${(response.toJsonString())}")
+            logger.iLog("Successfully sent event for task $taskId (context $contextId)")
         } catch (e: Exception) {
-            log.severe("Error sending event: $e")
+            logger.eLog("Error sending event: $e")
         }
     }
 
-    private suspend fun processA2uiMessages(data: Map<String, Any?>) {
+    private suspend fun processA2uiMessages(data: JsonObject) {
         var prettyJson = "(Error sanitizing log data)"
         try {
-            prettyJson = toPrettyJson(sanitizeLogData(data))
-            log.finest("Processing a2ui messages from data part:\n$prettyJson")
+            prettyJson = (sanitizeLogData(data)).toJsonString()
+            logger.iLog("Processing a2ui messages from data part:\n$prettyJson")
         } catch (e: Exception) {
-            log.warning("Error logging a2ui messages: $e")
+            logger.eLog("Error logging a2ui messages: $e")
         }
 
         if (
@@ -371,10 +370,10 @@ class A2uiAgentConnector(
             data.containsKey("createSurface") ||
             data.containsKey("deleteSurface")
         ) {
-            log.finest("Adding message to stream: $prettyJson")
-            _controller.emit(GenUiA2uiMessage.fromJson(data))
+            logger.iLog("Adding message to stream: $prettyJson")
+            _controller.emit(a2aJson.decodeFromJsonElement(data))
         } else {
-            log.warning("A2A data part did not contain any known A2UI messages.")
+            logger.eLog("A2A data part did not contain any known A2UI messages.")
         }
     }
 
@@ -387,6 +386,6 @@ class A2uiAgentConnector(
     fun dispose() {
         // If your A2AClient or transport supports closing, do it here.
         // Example:
-        // client.close()
+        client.close()
     }
 }

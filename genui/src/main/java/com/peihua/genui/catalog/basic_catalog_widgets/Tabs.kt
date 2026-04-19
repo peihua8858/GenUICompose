@@ -82,7 +82,7 @@ object Tabs {
      */
     val tabs = CatalogItem(
         name = "Tabs",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val tabsData = TabsData.fromMap(itemContext.data as JsonMap);
             val activeTabRef = tabsData.activeTab;

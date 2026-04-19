@@ -90,7 +90,7 @@ object Slider {
     @OptIn(ExperimentalLayoutApi::class)
     val slider = CatalogItem(
         name = "Slider",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val sliderData = SliderData.fromMap(itemContext.data as JsonMap);
             val valueRef = sliderData.value;

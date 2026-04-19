@@ -1,9 +1,19 @@
 package com.peihua.genui.a2a.core
 
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.serialDescriptor
+import kotlinx.serialization.encoding.CompositeDecoder
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
 
-interface SecurityScheme {
+@Serializable(with = SecuritySchemeSerializer::class)
+sealed interface SecurityScheme {
     /** The type discriminator, always 'apiKey'.**/
     val type: String
 
@@ -87,18 +97,6 @@ interface SecurityScheme {
 //        fun fromJson(json: JsonObject) = _SecuritySchemeFromJson(json);
     }
 }
-//
-//fun _SecuritySchemeFromJson(json: JsonObject): SecurityScheme {
-//    val type = json["type"].toString()
-//    return when (type) {
-//        "apiKey" -> Json.decodeFromJsonElement<APIKeySecurityScheme>(json) //APIKeySecurityScheme.fromJson(json)
-//        "http" ->  Json.decodeFromJsonElement<HttpAuthSecurityScheme>(json)//HttpAuthSecurityScheme.fromJson(json)
-//        "oauth2" -> Json.decodeFromJsonElement<OAuth2SecurityScheme>(json)//OAuth2SecurityScheme.fromJson(json)
-//        "openIdConnect" -> Json.decodeFromJsonElement<OpenIdConnectSecurityScheme>(json)//OpenIdConnectSecurityScheme.fromJson(json)
-//        "mutualTls" -> Json.decodeFromJsonElement<MutualTlsSecurityScheme>(json)//MutualTlsSecurityScheme.fromJson(json)
-//        else -> throw Exception("Invalid union type \"${json["type"]}")
-//    }
-//}
 
 /**
  *  Container for the OAuth 2.0 flows supported by a [SecurityScheme.oauth2].
@@ -133,6 +131,7 @@ data class APIKeySecurityScheme(
     @SerialName("in")
     val _in: String,
 ) : SecurityScheme
+
 @Serializable
 @SerialName("http")
 data class HttpAuthSecurityScheme(
@@ -143,6 +142,7 @@ data class HttpAuthSecurityScheme(
     /** Specifies the location of the API key. Valid values are "query", "header", or "cookie". */
     val bearerFormat: String?,
 ) : SecurityScheme
+
 @Serializable
 @SerialName("oauth2")
 data class OAuth2SecurityScheme(
@@ -151,6 +151,7 @@ data class OAuth2SecurityScheme(
     /** The name of the header, query, or cookie parameter used to transmit the API key. */
     val flows: OAuthFlows,
 ) : SecurityScheme
+
 @Serializable
 @SerialName("openIdConnect")
 data class OpenIdConnectSecurityScheme(
@@ -159,9 +160,93 @@ data class OpenIdConnectSecurityScheme(
     /** The name of the header, query, or cookie parameter used to transmit the API key. */
     val openIdConnectUrl: String,
 ) : SecurityScheme
+
 @Serializable
 @SerialName("mutualTls")
 data class MutualTlsSecurityScheme(
     override val type: String,
     override val description: String?,
 ) : SecurityScheme
+
+
+class SecuritySchemeSerializer : KSerializer<SecurityScheme> {
+    @OptIn(InternalSerializationApi::class)
+    override val descriptor: SerialDescriptor
+        get() = buildClassSerialDescriptor("com.peihua.genui.a2a.core.SecurityScheme") {
+            element("type", serialDescriptor<String>())
+            element("description", serialDescriptor<String>())
+            element("name", serialDescriptor<String>())
+            element("in", serialDescriptor<String>())
+            element("scheme", serialDescriptor<String>())
+            element("bearerFormat", serialDescriptor<String>())
+            element("openIdConnectUrl", serialDescriptor<String>())
+            element("flows", serialDescriptor<OAuthFlows>())
+        }
+
+    override fun serialize(encoder: Encoder, value: SecurityScheme) {
+        when (value.type) {
+            "apiKey" -> encoder.encodeSerializableValue(
+                APIKeySecurityScheme.serializer(),
+                value as APIKeySecurityScheme
+            )
+
+            "http" -> encoder.encodeSerializableValue(
+                HttpAuthSecurityScheme.serializer(),
+                value as HttpAuthSecurityScheme
+            )
+
+            "oauth2" -> encoder.encodeSerializableValue(
+                OAuth2SecurityScheme.serializer(),
+                value as OAuth2SecurityScheme
+            )
+
+            "openIdConnect" -> encoder.encodeSerializableValue(
+                OpenIdConnectSecurityScheme.serializer(),
+                value as OpenIdConnectSecurityScheme
+            )
+
+            "mutualTls" -> encoder.encodeSerializableValue(
+                MutualTlsSecurityScheme.serializer(),
+                value as MutualTlsSecurityScheme
+            )
+        }
+    }
+
+    override fun deserialize(decoder: Decoder): SecurityScheme =
+        decoder.decodeStructure(descriptor) {
+            var type: String = ""
+            var description: String? = null
+            var name: String = ""
+            var _in: String = ""
+            var scheme: String = ""
+            var bearerFormat: String? = null
+            var openIdConnectUrl: String = ""
+            var flows: OAuthFlows? = null
+            while (true) {
+                when (val index = decodeElementIndex(descriptor)) {
+                    0 -> type = decodeStringElement(descriptor, 0)
+                    1 -> description = decodeStringElement(descriptor, 1)
+                    2 -> name = decodeStringElement(descriptor, 2)
+                    3 -> _in = decodeStringElement(descriptor, 3)
+                    4 -> scheme = decodeStringElement(descriptor, 4)
+                    5 -> bearerFormat = decodeStringElement(descriptor, 5)
+                    6 -> openIdConnectUrl = decodeStringElement(descriptor, 6)
+                    7 -> flows = decodeSerializableElement(descriptor, 7, OAuthFlows.serializer())
+                    CompositeDecoder.DECODE_DONE -> break
+                    CompositeDecoder.UNKNOWN_NAME -> {
+                        decodeUnknownElement(descriptor, index)
+                        continue
+                    }
+                    else -> error("Unexpected index: $index")
+                }
+            }
+            when (type) {
+                "apiKey" -> APIKeySecurityScheme(type, description, name, _in)
+                "http" -> HttpAuthSecurityScheme(type, description, scheme, bearerFormat)
+                "oauth2" -> OAuth2SecurityScheme(type, description, flows!!)
+                "openIdConnect" -> OpenIdConnectSecurityScheme(type, description, openIdConnectUrl)
+                "mutualTls" -> MutualTlsSecurityScheme(type, description)
+                else -> error("Unknown type: $type")
+            }
+        }
+}

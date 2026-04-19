@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":genui"))
     implementation(project(":genai_primitives"))
     implementation(project(":json_schema_builder"))
+    implementation("com.github.peihua8858:ComposeUtils:1.0.2")
 
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.serialization.kotlinx.json)

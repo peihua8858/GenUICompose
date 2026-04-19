@@ -89,7 +89,7 @@ object List {
     @OptIn(ExperimentalLayoutApi::class)
     val list = CatalogItem(
         name = "List",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val listData = ListData.fromMap(itemContext.data as JsonMap)
             val direction = when (listData.direction) {

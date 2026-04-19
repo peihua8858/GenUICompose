@@ -6,14 +6,17 @@ import com.peihua.json.kDefs
 import com.peihua.json.kDynamicAnchor
 import com.peihua.json.kDynamicRef
 import com.peihua.json.kRef
+import com.peihua.json.utils.toMap
 import kotlinx.serialization.json.*
+
 typealias S = Schema
+
 class Schema private constructor(
-    private val value: MutableMap<String, Any?>
+    val value: MutableMap<String, Any>
 ) {
 
     companion object {
-        fun fromMap(map: Map<String, Any?>): Schema {
+        fun fromMap(map: Map<String, Any>): Schema {
             return Schema(map.toMutableMap())
         }
 
@@ -49,10 +52,11 @@ class Schema private constructor(
                 is List<*> -> type.mapNotNull {
                     (it as? JsonType)?.typeName
                 }
+
                 else -> null
             }
 
-            val map = mutableMapOf<String, Any?>()
+            val map = mutableMapOf<String, Any>()
 
             putIfNotNull(map, "type", typeValue)
             putIfNotNull(map, "enum", enumValues)
@@ -83,7 +87,6 @@ class Schema private constructor(
                 "dependentSchemas",
                 dependentSchemas?.mapValues { it.value.toMap() }
             )
-
             return Schema(map)
         }
 
@@ -97,7 +100,7 @@ class Schema private constructor(
             pattern: String? = null,
             format: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "string"
             )
             putIfNotNull(map, "title", title)
@@ -115,7 +118,7 @@ class Schema private constructor(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "boolean"
             )
             putIfNotNull(map, "title", title)
@@ -132,7 +135,7 @@ class Schema private constructor(
             exclusiveMaximum: Number? = null,
             multipleOf: Number? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "number"
             )
             putIfNotNull(map, "title", title)
@@ -154,7 +157,7 @@ class Schema private constructor(
             exclusiveMaximum: Int? = null,
             multipleOf: Number? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "integer"
             )
             putIfNotNull(map, "title", title)
@@ -180,7 +183,7 @@ class Schema private constructor(
             maxItems: Int? = null,
             uniqueItems: Boolean? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "array"
             )
             putIfNotNull(map, "title", title)
@@ -210,7 +213,7 @@ class Schema private constructor(
             minProperties: Int? = null,
             maxProperties: Int? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "object"
             )
             putIfNotNull(map, "title", title)
@@ -231,7 +234,7 @@ class Schema private constructor(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>(
+            val map = mutableMapOf<String, Any>(
                 "type" to "null"
             )
             putIfNotNull(map, "title", title)
@@ -243,7 +246,7 @@ class Schema private constructor(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any?>()
+            val map = mutableMapOf<String, Any>()
             putIfNotNull(map, "title", title)
             putIfNotNull(map, "description", description)
             return Schema(map)
@@ -261,7 +264,7 @@ class Schema private constructor(
         }
 
         private fun putIfNotNull(
-            map: MutableMap<String, Any?>,
+            map: MutableMap<String, Any>,
             key: String,
             value: Any?
         ) {
@@ -279,8 +282,6 @@ class Schema private constructor(
         }
     }
 
-    fun toMap(): Map<String, Any?> = value.toMap()
-
     operator fun get(key: String): Any? = value[key]
 
     fun schemaOrBool(key: String): Schema? {
@@ -289,8 +290,9 @@ class Schema private constructor(
             is Boolean -> fromBoolean(v, listOf(key))
             is Map<*, *> -> {
                 @Suppress("UNCHECKED_CAST")
-                fromMap(v as Map<String, Any?>)
+                fromMap(v as Map<String, Any>)
             }
+
             else -> null
         }
     }
@@ -305,8 +307,9 @@ class Schema private constructor(
                     is Boolean -> fromBoolean(item)
                     is Map<*, *> -> {
                         @Suppress("UNCHECKED_CAST")
-                        fromMap(item as Map<String, Any?>)
+                        fromMap(item as Map<String, Any>)
                     }
+
                     else -> error("Invalid schema value for key: $k")
                 }
                 k to schema
@@ -421,6 +424,7 @@ class Schema private constructor(
                     k.toString() to toJsonElement(v)
                 }
             )
+
             is List<*> -> JsonArray(any.map { toJsonElement(it) })
             else -> JsonPrimitive(any.toString())
         }

@@ -25,7 +25,7 @@ interface Transport {
      * `Map<String, Object?>`. Throws an `A2AException` if the request fails
      * (e.g., network error, non-200 status).
      **/
-     suspend operator fun get(path: String, headers: Map<String, String> = mutableMapOf<String, String>()): JsonObject
+    suspend operator fun get(path: String, headers: Map<String, String> = mutableMapOf<String, String>()): JsonObject
 
     /**
      * Sends a single JSON-RPC request to the server, expecting a single
@@ -53,7 +53,7 @@ interface Transport {
      * JSON object received from the server. The stream may emit `A2AException`
      * errors if issues occur during streaming.
      **/
-     fun sendStream(request: Map<String, Any?>, headers: Map<String, String>): Flow<JsonObject>
+    fun sendStream(request: Map<String, Any>, headers: Map<String, String> = mapOf()): Flow<JsonObject>
 
     /** Closes the transport and releases any underlying resources.
      *

@@ -1,5 +1,6 @@
 package com.peihua.genui.primitives
 
+import kotlinx.serialization.json.JsonObject
 import kotlin.uuid.Uuid
 
 /// A map of key-value pairs representing a JSON object.
@@ -10,3 +11,5 @@ const val surfaceIdKey = "surfaceId";
 
 /// Generates a unique ID (UUID v4).
 //fun generateId(): String =  Uuid().v4();
+
+fun JsonObject.toJsonMap(): JsonMap = map { it.key to it.value }.toMap()

@@ -91,7 +91,7 @@ object TextField {
     val textField = CatalogItem(
         name = "TextField",
         isImplicitlyFlexible = true,
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val textFieldData = TextFieldData.fromMap(itemContext.data as JsonMap);
             val valueRef = textFieldData.value;

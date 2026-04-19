@@ -66,7 +66,7 @@ object CheckBox {
      */
     val checkBox = CatalogItem(
         name = "CheckBox",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val checkBoxData = _CheckBoxData(itemContext.data as JsonMap)
             val valueRef = checkBoxData.value;

@@ -46,7 +46,7 @@ object Divider {
      */
     val divider = CatalogItem(
         name = "Divider",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val dividerData = DividerData.fromMap(itemContext.data as JsonMap);
             if (dividerData.axis == "vertical") {

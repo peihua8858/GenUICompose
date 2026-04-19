@@ -45,7 +45,7 @@ object Card {
      */
     val card = CatalogItem(
         name = "Card",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val cardData = CardData(itemContext.data as JsonMap)
             Card(

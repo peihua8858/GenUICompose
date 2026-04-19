@@ -65,7 +65,6 @@ data class TaskStatus(
     val timestamp: String?,
 )
 
-@Serializable
 enum class TaskState {
     /** The task has been received by the server but not yet started. */
     SUBMITTED,

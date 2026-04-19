@@ -112,7 +112,7 @@ object Row {
     @OptIn(ExperimentalLayoutApi::class)
     val row = CatalogItem(
         name = "Row",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val rowData = RowData.fromMap(itemContext.data as JsonMap);
             ComponentChildrenBuilder(

@@ -87,7 +87,7 @@ object Image {
 
     val image = CatalogItem(
         name = "Image",
-        dataSchema = _schema,
+        schema = _schema,
         exampleData = listOf(
             {
                 """

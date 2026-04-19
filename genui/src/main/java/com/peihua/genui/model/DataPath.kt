@@ -1,6 +1,7 @@
 package com.peihua.genui.model
 
 import com.peihua.genui.model.DataPath.Companion._separator
+import kotlinx.serialization.Serializable
 
 fun DataPath(path: String): DataPath {
     if (path == _separator) return DataPath.root;
@@ -8,6 +9,7 @@ fun DataPath(path: String): DataPath {
     return DataPath(segments, path.startsWith(_separator));
 }
 
+@Serializable
 class DataPath internal constructor(
     //The segments of the path.
     val segments: List<String>,
@@ -19,13 +21,14 @@ class DataPath internal constructor(
         const val _separator = "/";
 
         /// The root path.
-        val root = DataPath(listOf<String>(), true);
+        val root = DataPath(listOf(), true);
 
     }
 
 
     /// The last segment of the path.
-    val basename: String = if (segments.isEmpty()) "" else segments.last();
+    val basename: String
+        get() = if (segments.isEmpty()) "" else segments.last()
 
     /// The path without the last segment.
     val dirname: DataPath
@@ -33,7 +36,7 @@ class DataPath internal constructor(
             if (segments.isEmpty()) return this;
             return DataPath(segments.subList(0, segments.size - 1), isAbsolute)
         }
-
+    val isRoot: Boolean get() = segments.isEmpty()
     /// Joins this path with another path.
     fun join(other: DataPath): DataPath {
         if (isAbsolute && other.isAbsolute) {
@@ -68,25 +71,4 @@ class DataPath internal constructor(
         val path = segments.joinToString(_separator);
         return if (isAbsolute) "$_separator$path" else path;
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as DataPath
-
-        if (isAbsolute != other.isAbsolute) return false
-        if (segments != other.segments) return false
-        if (basename != other.basename) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = isAbsolute.hashCode()
-        result = 31 * result + segments.hashCode()
-        result = 31 * result + basename.hashCode()
-        return result
-    }
-
 }

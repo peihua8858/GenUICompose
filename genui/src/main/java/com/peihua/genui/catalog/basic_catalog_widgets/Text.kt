@@ -53,7 +53,7 @@ object Text {
     )
     val text = CatalogItem(
         name = "Text",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = @Composable { itemContext ->
             val textData = TextData.fromMap(itemContext.data as JsonMap)
             BoundString(

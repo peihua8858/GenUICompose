@@ -169,7 +169,7 @@ object DateTimeInput {
      */
     val dateTimeInput = CatalogItem(
         name = "DateTimeInput",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val dateTimeInputData = DateTimeInputData.fromMap(itemContext.data as JsonMap)
             val valueRef = dateTimeInputData.value;

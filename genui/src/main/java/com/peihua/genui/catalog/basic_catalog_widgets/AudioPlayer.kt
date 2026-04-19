@@ -40,7 +40,7 @@ object AudioPlayer {
      **/
     val audioPlayer = CatalogItem(
         name = "AudioPlayer",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = @Composable { itemContext ->
             val json = itemContext.data as JsonMap
             val description = json["description"].toString()

@@ -84,7 +84,7 @@ object Modal {
     @OptIn(ExperimentalMaterial3Api::class)
     val modal = CatalogItem(
         name = "Modal",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val context = LocalContext.current
             val showModalDialog= remember { mutableStateOf( false) }

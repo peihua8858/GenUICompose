@@ -4,10 +4,9 @@ import com.peihua.genui.primitives.JsonMap
 import com.peihua.genui.primitives.basicCatalogId
 import com.peihua.genui.primitives.surfaceIdKey
 import com.peihua.json.schema.Schema
+import com.peihua.json.utils.toMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -160,7 +159,7 @@ data class Component(
         /**
          * Creates a [Component] from a JSON map.
          */
-        fun fromJson(json: JsonMap): Component {
+        fun fromJson(json: JsonObject): Component {
             if (json["component"] == null) {
                 throw IllegalArgumentException("Component.fromJson: component property is null");
             }
@@ -201,179 +200,208 @@ data class SurfaceDefinition(
             return Json.decodeFromJsonElement(json)
         }
     }
-  /// Converts this object to a JSON map.
-  fun toJson() : JsonElement {
-      return Json.encodeToJsonElement(this)
-  }
-      /// Converts a UI definition into a blob of text.
-  fun asContextDescriptionText():String {
-    val text = Json.encodeToString(this);
-    return "A user interface is shown with the following content:\n$text.";
-  }
 
-  /// Validates the UI definition against a schema.
-  ///
-  /// Throws [A2uiValidationException] if validation fails.
-  fun validate( schema: Schema) {
-    val jsonOutput = schema.toJson();
-    val schemaMap = Json.decodeFromString<Map<String, Any>>(jsonOutput)
-
-    var allowedSchemas = mutableListOf<Map<String, Any>>();
-    if (schemaMap.containsKey("oneOf")) {
-      allowedSchemas = (schemaMap["oneOf"] as MutableList<Map<String, Any>>);
-    } else if (schemaMap.containsKey("properties") &&
-        (schemaMap["properties"] as Map).containsKey("components")) {
-      val componentsProp =
-          (schemaMap["properties"] as Map)["components"]
-              as Map<String, dynamic>;
-      if (componentsProp.containsKey("items")) {
-        final items = componentsProp['items'] as Map<String, dynamic>;
-        if (items.containsKey('oneOf')) {
-          allowedSchemas = (items['oneOf'] as List)
-              .cast<Map<String, dynamic>>();
-        } else {
-          allowedSchemas = [items];
-        }
-      } else if (componentsProp.containsKey('properties')) {
-        allowedSchemas = (componentsProp['properties'] as Map).values
-            .cast<Map<String, dynamic>>()
-            .toList();
-      }
+    /** Converts this object to a JSON map.*/
+    fun toJson(): JsonElement {
+        return Json.encodeToJsonElement(this)
     }
 
-    if (allowedSchemas.isEmpty) {
-      return;
+    /** Converts a UI definition into a blob of text.*/
+    fun asContextDescriptionText(): String {
+        val text = Json.encodeToString(this);
+        return "A user interface is shown with the following content:\n$text.";
     }
 
-    for (final Component component in components.values) {
-      var matched = false;
-      List<String> errors = [];
-      final JsonMap instanceJson = component.toJson();
+    /**
+     * Validates the UI definition against a schema.
+     *
+     * Throws [A2uiValidationException] if validation fails.
+     */
+    fun validate(schema: Schema) {
+        val schemaMap = schema.toMap();
+        var allowedSchemas = mutableListOf<Map<String, Any>>();
+        when {
+            schemaMap.containsKey("oneOf") -> {
+                allowedSchemas.addAll((schemaMap["oneOf"] as List<*>).map { it.toMap() })
+            }
 
-      for (final s in allowedSchemas) {
-        if (_schemaMatchesType(s, component.type)) {
-          try {
-            _validateInstance(instanceJson, s, '/components/${component.id}');
-            matched = true;
-            break;
-          } catch (e) {
-            errors.add(e.toString());
-          }
-        }
-      }
+            schemaMap.containsKey("properties") -> {
+                val properties = (schemaMap["properties"] as Map<*, *>)
+                if (properties.containsKey("components")) {
+                    val componentsProp = properties["components"] as Map<*, *>
+                    when {
+                        componentsProp.containsKey("items") -> {
+                            val items = componentsProp["items"] as Map<*, *>
+                            if (items.containsKey("oneOf")) {
+                                allowedSchemas.addAll((items["oneOf"] as List<*>).map { it.toMap() })
+                            } else {
+                                allowedSchemas.add(items.toMap())
+                            }
+                        }
 
-      if (!matched) {
-        if (errors.isNotEmpty) {
-          throw A2uiValidationException(
-            'Validation failed for component ${component.id} '
-            '(${component.type}): ${errors.join("; ")}',
-            surfaceId: surfaceId,
-            path: '/components/${component.id}',
-          );
+                        componentsProp.containsKey("properties") -> {
+                            val props = (componentsProp["properties"] as Map<*, *>)
+                            allowedSchemas.addAll(props.values.map { it.toMap() })
+                        }
+                    }
+                }
+            }
         }
-        throw A2uiValidationException(
-          'Unknown component type: ${component.type}',
-          surfaceId: surfaceId,
-          path: '/components/${component.id}',
-        );
-      }
+        if (allowedSchemas.isEmpty()) return
+        for (component in components.values) {
+            var matched = false;
+            val errors = mutableListOf<String>()
+            val instanceJson = component.toJson()
+            for (s in allowedSchemas) {
+                if (schemaMatchesType(s, component.type)) {
+                    try {
+                        validateInstance(instanceJson, s, "/components/${component.id}")
+                        matched = true
+                        break
+                    } catch (e: Exception) {
+                        errors.add(e.toString())
+                    }
+                }
+            }
+
+            if (!matched) {
+                if (errors.isNotEmpty()) {
+                    throw A2uiValidationException(
+                        "Validation failed for component ${component.id} " +
+                                "(${component.type}): ${errors.joinToString("; ")}",
+                        surfaceId = surfaceId,
+                        path = "/components/${component.id}",
+                    )
+                }
+                throw A2uiValidationException(
+                    "Unknown component type: ${component.type}",
+                    surfaceId = surfaceId,
+                    path = "/components/${component.id}",
+                )
+
+            }
+        }
     }
-  }
+
+    fun schemaMatchesType(schema: Map<String, *>, type: String): Boolean {
+        val properties = schema["properties"] as? Map<*, *> ?: return false
+        val compProp = properties["component"] as? Map<*, *> ?: return false
+        return when {
+            compProp.containsKey("const") -> {
+                compProp["const"] == type
+            }
+
+            compProp.containsKey("enum") -> {
+                (compProp["enum"] as List<*>).contains(type)
+            }
+
+            else -> false
+        }
+    }
+
+    fun validateInstance(instance: Any?, schema: Map<String, *>, path: String) {
+        if (instance == null) {
+            return
+        }
+        if (schema.containsKey("const")) {
+            if (instance != schema["const"]) {
+                throw A2uiValidationException(
+                    "Value mismatch. Expected ${schema["const"]}, got $instance",
+                    surfaceId = surfaceId,
+                    path = path,
+                )
+            }
+        }
+
+        val enumList = schema["const"] as? List<*>?
+        if (enumList != null && !enumList.contains(instance)) {
+            throw A2uiValidationException(
+                "Value not in enum: $instance",
+                surfaceId = surfaceId,
+                path = path,
+            )
+        }
+        if (instance is Map<*, *>) {
+            val required = schema["required"] as? List<*>
+            if (required != null) {
+                for (key in required) {
+                    if (key !is String) continue // 或者抛出类型错误
+                    if (!instance.containsKey(key)) {
+                        throw A2uiValidationException("Missing required property: $key", surfaceId, path)
+                    }
+                }
+            }
+            val props = schema["properties"] as? Map<*, *>
+            if (props != null) {
+                for ((key, propSchema) in props) {
+                    if (instance.containsKey(key)) {
+                        val propSchemaMap = propSchema as? Map<String, *>
+                        if (propSchemaMap != null) {
+                            validateInstance(instance[key], propSchema, "$path/$key")
+                        }
+                    }
+                }
+            }
+        }
+        // items (only if instance is List)
+        if (instance is List<*>) {
+            val itemsSchema = schema["items"] as? Map<String, Any?>
+            if (itemsSchema != null) {
+                for ((i, item) in instance.withIndex()) {
+                    validateInstance(item, itemsSchema, "$path/$i")
+                }
+            }
+        }
+        // oneOf
+        val oneOfs = schema["oneOf"] as? List<*>
+        if (oneOfs != null) {
+            var oneMatched = false
+            for (item in oneOfs) {
+                val subSchema = item as? Map<String, Any?> ?: continue
+                try {
+                    validateInstance(instance, subSchema, path)
+                    oneMatched = true
+                    break
+                } catch (_: Exception) {
+                    // continue
+                }
+            }
+            if (!oneMatched) {
+                throw A2uiValidationException("Value did not match any oneOf schema", surfaceId, path)
+            }
+        }
+    }
+
 }
-//class SurfaceDefinition {
-//
 
 
-//
-//  bool _schemaMatchesType(Map<String, dynamic> schema, String type) {
-//    if (schema case {
-//      'properties': {'component': Map<String, dynamic> compProp},
-//    }) {
-//      return switch (compProp) {
-//        {'const': String constType} when constType == type => true,
-//        {'enum': List<dynamic> enums} when enums.contains(type) => true,
-//        _ => false,
-//      };
-//    }
-//    return false;
-//  }
-//
-//  void _validateInstance(
-//    Object? instance,
-//    Map<String, dynamic> schema,
-//    String path,
-//  ) {
-//    if (instance == null) {
-//      return;
-//    }
-//
-//    if (schema case {'const': Object? constVal} when instance != constVal) {
-//      throw A2uiValidationException(
-//        'Value mismatch. Expected $constVal, got $instance',
-//        surfaceId: surfaceId,
-//        path: path,
-//      );
-//    }
-//
-//    if (schema case {
-//      'enum': List<dynamic> enums,
-//    } when !enums.contains(instance)) {
-//      throw A2uiValidationException(
-//        'Value not in enum: $instance',
-//        surfaceId: surfaceId,
-//        path: path,
-//      );
-//    }
-//
-//    if (schema case {'required': List<dynamic> required} when instance is Map) {
-//      for (final String key in required.cast<String>()) {
-//        if (!instance.containsKey(key)) {
-//          throw A2uiValidationException(
-//            'Missing required property: $key',
-//            surfaceId: surfaceId,
-//            path: path,
-//          );
-//        }
-//      }
-//    }
-//
-//    if (schema case {
-//      'properties': Map<String, dynamic> props,
-//    } when instance is Map) {
-//      for (final MapEntry<String, dynamic> entry in props.entries) {
-//        final String key = entry.key;
-//        final propSchema = entry.value as Map<String, dynamic>;
-//        if (instance.containsKey(key)) {
-//          _validateInstance(instance[key], propSchema, '$path/$key');
-//        }
-//      }
-//    }
-//
-//    if (schema case {
-//      'items': Map<String, dynamic> itemsSchema,
-//    } when instance is List) {
-//      for (var i = 0; i < instance.length; i++) {
-//        _validateInstance(instance[i], itemsSchema, '$path/$i');
-//      }
-//    }
-//
-//    if (schema case {'oneOf': List<dynamic> oneOfs}) {
-//      var oneMatched = false;
-//      for (final Map<String, dynamic> s
-//          in oneOfs.cast<Map<String, dynamic>>()) {
-//        try {
-//          _validateInstance(instance, s, path);
-//          oneMatched = true;
-//          break;
-//        } catch (_) {}
-//      }
-//      if (!oneMatched) {
-//        throw A2uiValidationException(
-//          'Value did not match any oneOf schema',
-//          surfaceId: surfaceId,
-//          path: path,
-//        );
-//      }
-//    }
-//  }
-//}
+/// Exception thrown when validation fails.
+class A2uiValidationException(
+    /// The error message.
+    override val message: String,
+
+    /// The ID of the surface where the validation error occurred.
+    val surfaceId: String? = null,
+
+    /// The path in the data/component model where the error occurred.
+    final val path: String? = null,
+
+    /// The JSON that caused the error.
+    final val json: Any? = null,
+
+    /// The underlying cause of the error.
+    final override val cause: Throwable? = null,
+
+
+    ) : Exception() {
+
+
+    override fun toString(): String {
+        val buffer = StringBuffer("A2uiValidationException: $message");
+        if (surfaceId != null) buffer.append(" (surface: $surfaceId)");
+        if (path != null) buffer.append(" (path: $path)");
+        if (cause != null) buffer.append("\nCause: $cause");
+        if (json != null) buffer.append("\nJSON: $json");
+        return buffer.toString();
+    }
+}

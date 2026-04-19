@@ -87,7 +87,7 @@ object Button {
      */
     val button = CatalogItem(
         name = "Button",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = { itemContext ->
             val scope = rememberCoroutineScope()
             val buttonData = Json.decodeFromString<ButtonData>(itemContext.data.toString())

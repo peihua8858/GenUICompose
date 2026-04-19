@@ -100,7 +100,7 @@ object ChoicePicker {
     /// A component that allows selecting one or more options from a list.
     val choicePicker = CatalogItem(
         name = "ChoicePicker",
-        dataSchema = _schema,
+        schema = _schema,
         widgetBuilder = @Composable { itemContext ->
             val data = ChoicePickerData(itemContext.data as JsonMap)
             val valueRef = data.value;

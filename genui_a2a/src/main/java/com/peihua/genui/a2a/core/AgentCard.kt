@@ -1,6 +1,6 @@
 package com.peihua.genui.a2a.core
 
-import com.peihua.genui.a2a.DefaultJson
+import com.peihua.genui.a2a.a2aJson
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -71,7 +71,7 @@ data class AgentCard(
      * referenced in security requirements. The values define the scheme
      * details, following the OpenAPI 3.0 Security Scheme Object structure.
      **/
-    val securitySchemes: Map<String, SecurityScheme>?,
+    val securitySchemes: Map<String,SecurityScheme>?,
     /**
      * A list of security requirements that apply globally to all interactions
      * with this agent, unless overridden by a specific skill or method.
@@ -109,7 +109,7 @@ data class AgentCard(
 ) {
     companion object {
         fun fromJson(json: JsonElement): AgentCard {
-            return DefaultJson.decodeFromJsonElement(json)
+            return a2aJson.decodeFromJsonElement(json)
         }
     }
 }

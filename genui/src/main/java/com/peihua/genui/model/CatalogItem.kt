@@ -2,6 +2,7 @@ package com.peihua.genui.model
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.peihua.json.schema.ObjectSchema
 import com.peihua.json.schema.Schema
 
 /**
@@ -18,11 +19,28 @@ typealias CatalogWidgetBuilder = @Composable (itemContext: CatalogItemContext) -
 
 data class CatalogItem(
     val name: String,
-    val dataSchema: Schema,
+    private val schema: Schema,
     val widgetBuilder: CatalogWidgetBuilder,
     val exampleData: List<ExampleBuilderCallback> = listOf(),
     val isImplicitlyFlexible: Boolean = false,
 ) {
+    val dataSchema: ObjectSchema
+        get() {
+            val originalMap = schema.value;
+            val properties = originalMap["properties"] as? Map<String, Any> ?: mutableMapOf()
+            val requiredProps = originalMap["required"] as? List<Any> ?: listOf()
+            val result = mutableMapOf<String, Any>()
+            result.putAll(originalMap)
+            result["properties"] = mutableMapOf<String, Any>().apply {
+                putAll(properties)
+                put("component", mapOf("type" to "string", "enum" to listOf(name)))
+            }
+            val component = mutableListOf<Any>()
+            component.add("component")
+            component.addAll(requiredProps)
+            result["required"] = component
+            return ObjectSchema.fromMap(result)
+        }
 }
 
 /**
