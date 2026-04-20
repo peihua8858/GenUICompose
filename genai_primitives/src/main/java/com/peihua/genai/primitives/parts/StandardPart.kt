@@ -66,8 +66,8 @@ class DataPart(
 
         //Gets the name for a MIME type.
         fun nameFromMimeType(mimeType: String): String {
-            val ext = extensionFromMimeType(mimeType) ?: "bin";
-            return if (mimeType.startsWith("image/")) "image.$ext" else "file.$ext";
+            val ext = extensionFromMimeType(mimeType) ?: "bin"
+            return if (mimeType.startsWith("image/")) "image.$ext" else "file.$ext"
         }
 
         //Gets the extension for a MIME type.

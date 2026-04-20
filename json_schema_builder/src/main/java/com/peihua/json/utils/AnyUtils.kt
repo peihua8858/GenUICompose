@@ -1,5 +1,6 @@
 package com.peihua.json.utils
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -53,6 +54,7 @@ fun Any?.toJsonString(): String {
 }
 
 
+@OptIn(ExperimentalSerializationApi::class)
 fun Any?.toJsonElement(): JsonElement = when (this) {
     null -> JsonNull
     is String -> JsonPrimitive(this)

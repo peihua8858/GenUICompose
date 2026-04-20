@@ -1,5 +1,8 @@
 package com.peihua.genui.a2a.core
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 class PushNotificationConfig(
     /// A unique identifier (e.g. UUID) for the push notification configuration,
     /// set by the client to support multiple notification callbacks.
@@ -19,6 +22,7 @@ class PushNotificationConfig(
 
 }
 
+@Serializable
 class PushNotificationAuthenticationInfo(
     /// A list of supported authentication schemes (e.g., 'Basic', 'Bearer').
     val schemes: List<String>,
@@ -29,6 +33,7 @@ class PushNotificationAuthenticationInfo(
 
 }
 
+@Serializable
 class TaskPushNotificationConfig(
     /// The unique identifier (e.g. UUID) of the task.
     val taskId: String,

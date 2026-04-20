@@ -3,16 +3,18 @@ package com.peihua.genui.model
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import com.peihua.genui.genUiLogger
+import com.peihua.genui.ILogger
+import com.peihua.genui.Logger
 import com.peihua.genui.primitives.JsonMap
 import com.peihua.json.schema.S
 import com.peihua.json.schema.Schema
 
 data class Catalog(
     val items: List<CatalogItem>,
+    val logger: ILogger = Logger,
     val functions: List<ClientFunction> = listOf(),
     val catalogId: String? = null,
-    val systemPromptFragments: List<String> = listOf(),
+    val systemPromptFragments: kotlin.collections.List<String> = listOf(),
 ) {
     /**
      * Builds a Flutter widget from a JSON-like data structure.
@@ -24,7 +26,7 @@ data class Catalog(
         if (item == null) {
             throw CatalogItemNotFoundException(widgetType, catalogId = catalogId)
         }
-        genUiLogger.iLog("Building widget ${item.name} with id ${itemContext.id}")
+        logger.iLog("Building widget ${item.name} with id ${itemContext.id}")
         return key(itemContext.id) {
             item.widgetBuilder(
                 CatalogItemContext(

@@ -1,5 +1,6 @@
 package com.peihua.json.schema
 
+import android.R.attr.value
 import com.peihua.json.JsonType
 import com.peihua.json.kAnchor
 import com.peihua.json.kDefs
@@ -10,10 +11,28 @@ import com.peihua.json.utils.toMap
 import kotlinx.serialization.json.*
 
 typealias S = Schema
+//
+//sealed interface Schema {
+//    val title: String?
+//    val description: String?
+////    fun toJson(indent: String? = null): JsonElement {
+////        val map = toMap()
+////        return if (indent == null) {
+////            map.toJsonObject()
+////        } else {
+////            Json {
+////                prettyPrint = true
+////                prettyPrintIndent = indent
+////            }.encodeToString(
+////                JsonObject.serializer(),
+////                map.toJsonObject()
+////            )
+////        }
+////    }
+//}
 
-class Schema private constructor(
-    val value: MutableMap<String, Any>
-) {
+
+open class Schema(val value: MutableMap<String, Any>) {
 
     companion object {
         fun fromMap(map: Map<String, Any>): Schema {
@@ -266,7 +285,7 @@ class Schema private constructor(
         private fun putIfNotNull(
             map: MutableMap<String, Any>,
             key: String,
-            value: Any?
+            value: Any?,
         ) {
             if (value != null) {
                 map[key] = value
@@ -302,8 +321,7 @@ class Schema private constructor(
         if (v is Map<*, *>) {
             return v.entries.associate { entry ->
                 val k = entry.key as String
-                val item = entry.value
-                val schema = when (item) {
+                val schema = when (val item = entry.value) {
                     is Boolean -> fromBoolean(item)
                     is Map<*, *> -> {
                         @Suppress("UNCHECKED_CAST")

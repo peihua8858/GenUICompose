@@ -229,15 +229,19 @@ fun Any?.toString(defaultValue: String = ""): String {
         this is String -> {
             this
         }
+
         this is EditText -> {
             text.toString()
         }
+
         this is TextView -> {
             text.toString()
         }
+
         this != null -> {
             this.toString()
         }
+
         else -> defaultValue
     }
 }
@@ -284,3 +288,17 @@ fun Number?.toStringAsFixed(fractionDigits: Int = 0): String {
     }
 }
 
+
+fun Any?.toNumberOrNull(): Number? {
+    return when (this) {
+        is Number -> {
+            this
+        }
+
+        is String -> {
+            this.toDoubleOrNull()
+        }
+
+        else -> null
+    }
+}
