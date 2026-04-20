@@ -294,6 +294,8 @@ class OpenUrlFunction : SynchronousClientFunction() {
         val urlStr = args["url"]
         if (urlStr !is String) return false
         val uri = urlStr.toUri()
+        //val uriHandler = LocalUriHandler.current
+        //uriHandler.openUri("https://example.com")
         canLaunchUrl(uri).then((can) {
             if (can) launchUrl(uri)
         })
