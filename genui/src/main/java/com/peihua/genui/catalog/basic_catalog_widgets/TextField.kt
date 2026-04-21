@@ -8,7 +8,6 @@ import com.peihua.genui.model.DataContext
 import com.peihua.genui.model.DataPath
 import com.peihua.genui.model.UserActionEvent
 import com.peihua.genui.primitives.JsonMap
-import com.peihua.genui.utils.toInteger
 import com.peihua.genui.widgets.BoundString
 import com.peihua.genui.widgets.resolveContext
 import com.peihua.json.schema.S

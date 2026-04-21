@@ -3,76 +3,83 @@ package com.peihua.json.schema
 import com.peihua.json.JsonType
 import com.peihua.json.ValidationError
 import com.peihua.json.ValidationErrorType
+import com.peihua.json.utils.toNumberOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.math.abs
 
-class IntegerSchema(value: JsonObject) : Schema(value) {
+class NumberSchema(value: JsonObject) : Schema(value) {
     constructor(
-        // Core keywords
         title: String? = null,
         description: String? = null,
-        //Number-specific keywords The inclusive lower bound of the integer.
-        minimum: Int? = null,
-        // The inclusive upper bound of the integer.
-        maximum: Int? = null,
-        // The exclusive lower bound of the integer.
-        exclusiveMinimum: Int? = null,
-        // The exclusive upper bound of the integer.
-        exclusiveMaximum: Int? = null,
-        /// The integer must be a multiple of this number.
+        minimum: Number? = null,
+        maximum: Number? = null,
+        exclusiveMinimum: Number? = null,
+        exclusiveMaximum: Number? = null,
         multipleOf: Number? = null,
     ) : this(
         buildJsonObject {
-            put("type", JsonType.INT.typeName)
-            put("title", title)
-            put("description", description)
-            put("minimum", minimum)
-            put("maximum", maximum)
-            put("exclusiveMinimum", exclusiveMinimum)
-            put("exclusiveMaximum", exclusiveMaximum)
-            put("multipleOf", multipleOf)
+            put("type", JsonType.NUM.typeName)
+            if (title != null) put("title", title)
+            if (description != null) put("description", description)
+            if (minimum != null) put("minimum", minimum)
+            if (maximum != null) put("maximum", maximum)
+            if (exclusiveMinimum != null) put("exclusiveMinimum", exclusiveMinimum)
+            if (exclusiveMaximum != null) put("exclusiveMaximum", exclusiveMaximum)
+            if (multipleOf != null) put("multipleOf", multipleOf)
         }
     )
 
-    val minimum: Int?
-        get() = value["minimum"] as Int?
-    val maximum: Int?
-        get() = value["maximum"] as Int?
-    val exclusiveMinimum: Int?
-        get() = value["exclusiveMinimum"] as Int?
-    val exclusiveMaximum: Int?
-        get() = value["exclusiveMaximum"] as Int?
-    val multipleOf: Number?
-        get() = value["multipleOf"] as Number?
+    /// The inclusive lower bound of the number.
+    val minimum: Number?
+        get() = value["minimum"].toNumberOrNull()
 
-    /// Validates the given integer against the schema constraints.
+    /// The inclusive upper bound of the number.
+    val maximum: Number?
+        get() = value["maximum"].toNumberOrNull()
+
+    /// The exclusive lower bound of the number.
+    val exclusiveMinimum: Number?
+        get() = value["exclusiveMinimum"].toNumberOrNull()
+
+    /// The exclusive upper bound of the number.
+    val exclusiveMaximum: Number?
+        get() = value["exclusiveMaximum"].toNumberOrNull()
+
+    /// The number must be a multiple of this number.
+    val multipleOf: Number?
+        get() = value["multipleOf"].toNumberOrNull()
+
+    /// Validates the given number against the schema constraints.
     ///
     /// This is a helper method used by the main validation logic.
-    fun validateInteger(data: Int, currentPath: List<String>, accumulatedFailures: HashSet<ValidationError>) {
+    fun validateNumber(
+        data: Int, currentPath: List<String>,
+        accumulatedFailures: HashSet<ValidationError>,
+    ) {
         val min = minimum
-        if (min != null && data < min) {
+        if (min != null && data < min.toInt()) {
             accumulatedFailures.add(
                 ValidationError(
                     ValidationErrorType.minimumNotMet,
                     path = currentPath,
-                    details = "Value $data is less than the minimum of $min",
+                    details = "Value $data is not at least $min",
                 ),
             );
         }
         val max = maximum
-        if (max != null && data > max) {
+        if (max != null && data < max.toInt()) {
             accumulatedFailures.add(
                 ValidationError(
                     ValidationErrorType.maximumExceeded,
                     path = currentPath,
-                    details = "Value $data is more than the maximum of $max",
+                    details = "Value $data is larger than $max",
                 ),
             );
         }
         val exclusiveMin = exclusiveMinimum
-        if (exclusiveMin != null && data <= exclusiveMin) {
+        if (exclusiveMin != null && data < exclusiveMin.toInt()) {
             accumulatedFailures.add(
                 ValidationError(
                     ValidationErrorType.exclusiveMinimumNotMet,
@@ -82,7 +89,7 @@ class IntegerSchema(value: JsonObject) : Schema(value) {
             );
         }
         val exclusiveMax = exclusiveMaximum
-        if (exclusiveMax != null && data >= exclusiveMax) {
+        if (exclusiveMax != null && data < exclusiveMax.toInt()) {
             accumulatedFailures.add(
                 ValidationError(
                     ValidationErrorType.exclusiveMaximumExceeded,
@@ -93,7 +100,7 @@ class IntegerSchema(value: JsonObject) : Schema(value) {
         }
         val multOf = multipleOf?.toDouble()
         if (multOf != null && multOf != 0.0) {
-            val remainder = data.toDouble() / multOf;
+            val remainder = data / multOf;
             if (remainder.isInfinite() || remainder.isNaN()) {
                 accumulatedFailures.add(
                     ValidationError(

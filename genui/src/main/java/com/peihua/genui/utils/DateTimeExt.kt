@@ -2,6 +2,7 @@ package com.peihua.genui.utils
 
 
 import android.annotation.SuppressLint
+import com.peihua.json.utils.toLong
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.roundToLong

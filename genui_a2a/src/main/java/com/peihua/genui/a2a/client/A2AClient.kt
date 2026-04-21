@@ -14,7 +14,7 @@ import com.peihua.genui.a2a.core.PushNotificationConfig
 import com.peihua.genui.a2a.core.Task
 import com.peihua.genui.a2a.core.TaskPushNotificationConfig
 import com.peihua.genui.a2a.sanitizeLogData
-import com.peihua.genui.utils.toInteger
+import com.peihua.json.utils.toInteger
 import com.peihua.json.utils.toMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

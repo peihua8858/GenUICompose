@@ -1,18 +1,14 @@
 package com.peihua.genui.catalog.basic_catalog_widgets
 
-import android.R.attr.name
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowColumn
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,7 +18,7 @@ import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.model.CatalogItemContext
 import com.peihua.genui.model.DataPath
 import com.peihua.genui.primitives.JsonMap
-import com.peihua.genui.utils.toInteger
+import com.peihua.json.utils.toInteger
 import com.peihua.genui.widgets.BoundNumber
 import com.peihua.genui.widgets.BoundString
 import com.peihua.json.schema.S

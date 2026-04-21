@@ -1,4 +1,4 @@
-package com.peihua.genui.utils
+package com.peihua.json.utils
 
 import android.content.Context
 import android.widget.EditText

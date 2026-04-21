@@ -1,11 +1,13 @@
 package com.peihua.json.utils
 
+import com.peihua.json.schema.Schema
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -54,7 +56,6 @@ fun Any?.toJsonString(): String {
 }
 
 
-@OptIn(ExperimentalSerializationApi::class)
 fun Any?.toJsonElement(): JsonElement = when (this) {
     null -> JsonNull
     is String -> JsonPrimitive(this)
@@ -85,12 +86,20 @@ fun Map<String, Any?>.toJsonObject(): JsonObject = buildJsonObject {
 fun <T> T?.toJsonObject(): JsonObject = when (this) {
     null -> JsonObject(emptyMap())
     is JsonObject -> this
+    is Map<*, *> -> (this as Map<String, Any?>).toJsonObject()
     else -> this.toMap().toJsonObject()
+}
+
+fun <A, B> List<Pair<A, B>>.toJsonElement(): JsonElement = buildJsonObject {
+    for ((key, value) in this@toJsonElement) {
+        put(key.toString(), value.toJsonElement())
+    }
+
 }
 
 fun List<Any?>.toJsonArray(): JsonArray = buildJsonArray {
     for (value in this@toJsonArray) {
-      add(value.toJsonElement())
+        add(value.toJsonElement())
     }
 }
 

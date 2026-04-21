@@ -1,9 +1,12 @@
 package com.peihua.json.schema
 
-class ObjectSchema(value: MutableMap<String, Any>) : Schema(value) {
+import com.peihua.json.utils.toJsonObject
+import kotlinx.serialization.json.JsonObject
+
+class ObjectSchema(value: JsonObject) : Schema(value) {
     companion object {
         fun fromMap(map: Map<String, Any>): ObjectSchema {
-            return ObjectSchema(map.toMutableMap())
+            return ObjectSchema(map.toJsonObject())
         }
     }
 }

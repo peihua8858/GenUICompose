@@ -18,8 +18,8 @@ import com.peihua.genui.model.A2uiSchemas
 import com.peihua.genui.model.CatalogItem
 import com.peihua.genui.model.DataPath
 import com.peihua.genui.primitives.JsonMap
-import com.peihua.genui.utils.toFloat
-import com.peihua.genui.utils.toStringAsFixed
+import com.peihua.json.utils.toFloat
+import com.peihua.json.utils.toStringAsFixed
 import com.peihua.genui.widgets.BoundNumber
 import com.peihua.genui.widgets.BoundString
 import com.peihua.json.schema.S

@@ -1,42 +1,32 @@
 package com.peihua.json.schema
 
-import android.R.attr.value
 import com.peihua.json.JsonType
 import com.peihua.json.kAnchor
 import com.peihua.json.kDefs
 import com.peihua.json.kDynamicAnchor
 import com.peihua.json.kDynamicRef
 import com.peihua.json.kRef
+import com.peihua.json.utils.toJsonArray
+import com.peihua.json.utils.toJsonElement
+import com.peihua.json.utils.toJsonObject
 import com.peihua.json.utils.toMap
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 typealias S = Schema
-//
-//sealed interface Schema {
-//    val title: String?
-//    val description: String?
-////    fun toJson(indent: String? = null): JsonElement {
-////        val map = toMap()
-////        return if (indent == null) {
-////            map.toJsonObject()
-////        } else {
-////            Json {
-////                prettyPrint = true
-////                prettyPrintIndent = indent
-////            }.encodeToString(
-////                JsonObject.serializer(),
-////                map.toJsonObject()
-////            )
-////        }
-////    }
-//}
 
-
-open class Schema(val value: MutableMap<String, Any>) {
+open class Schema(val value: JsonObject) {
 
     companion object {
         fun fromMap(map: Map<String, Any>): Schema {
-            return Schema(map.toMutableMap())
+            return Schema(map.toJsonObject())
         }
 
         fun combined(
@@ -70,43 +60,38 @@ open class Schema(val value: MutableMap<String, Any>) {
                 is JsonType -> type.typeName
                 is List<*> -> type.mapNotNull {
                     (it as? JsonType)?.typeName
-                }
+                }.toList()
 
                 else -> null
             }
 
-            val map = mutableMapOf<String, Any>()
-
-            putIfNotNull(map, "type", typeValue)
-            putIfNotNull(map, "enum", enumValues)
-            putIfNotNull(map, "const", constValue)
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "\$comment", comment)
-            putIfNotNull(map, "default", defaultValue)
-            putIfNotNull(map, "examples", examples)
-            putIfNotNull(map, "deprecated", deprecated)
-            putIfNotNull(map, "readOnly", readOnly)
-            putIfNotNull(map, "writeOnly", writeOnly)
-            putIfNotNull(map, kDefs, defs?.mapValues { it.value.toMap() })
-            putIfNotNull(map, kRef, ref)
-            putIfNotNull(map, kAnchor, anchor)
-            putIfNotNull(map, kDynamicAnchor, dynamicAnchor)
-            putIfNotNull(map, "\$id", id)
-            putIfNotNull(map, "\$schema", schema)
-            putIfNotNull(map, "allOf", allOf?.map { normalizeSchemaLike(it) })
-            putIfNotNull(map, "anyOf", anyOf?.map { normalizeSchemaLike(it) })
-            putIfNotNull(map, "oneOf", oneOf?.map { normalizeSchemaLike(it) })
-            putIfNotNull(map, "not", normalizeSchemaLike(not))
-            putIfNotNull(map, "if", normalizeSchemaLike(ifSchema))
-            putIfNotNull(map, "then", normalizeSchemaLike(thenSchema))
-            putIfNotNull(map, "else", normalizeSchemaLike(elseSchema))
-            putIfNotNull(
-                map,
-                "dependentSchemas",
-                dependentSchemas?.mapValues { it.value.toMap() }
-            )
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", typeValue.toJsonElement())
+                put("title", title)
+                put("description", description)
+                put("enum", enumValues.toJsonArray())
+                put("const", constValue.toJsonElement())
+                put("\$comment", comment)
+                put("default", defaultValue.toJsonElement())
+                put("examples", examples.toJsonArray())
+                put("deprecated", deprecated)
+                put("readOnly", readOnly)
+                put("writeOnly", writeOnly)
+                put(kDefs, defs.toJsonElement())
+                put(kRef, ref)
+                put(kAnchor, anchor)
+                put(kDynamicAnchor, dynamicAnchor)
+                put("\$id", id)
+                put("\$schema", schema)
+                put("allOf", allOf.toJsonArray())
+                put("anyOf", anyOf.toJsonArray())
+                put("oneOf", oneOf.toJsonArray())
+                put("not", not.toJsonElement())
+                put("if", ifSchema.toJsonElement())
+                put("then", thenSchema.toJsonElement())
+                put("else", elseSchema.toJsonElement())
+                put("dependentSchemas", dependentSchemas.toJsonElement())
+            })
         }
 
         fun string(
@@ -119,30 +104,28 @@ open class Schema(val value: MutableMap<String, Any>) {
             pattern: String? = null,
             format: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "string"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "enum", enumValues)
-            putIfNotNull(map, "const", constValue)
-            putIfNotNull(map, "minLength", minLength)
-            putIfNotNull(map, "maxLength", maxLength)
-            putIfNotNull(map, "pattern", pattern)
-            putIfNotNull(map, "format", format)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.BOOLEAN.typeName)
+                put("title", title)
+                put("description", description)
+                put("enum", enumValues.toJsonArray())
+                put("const", constValue.toJsonElement())
+                put("minLength", minLength)
+                put("maxLength", maxLength)
+                put("pattern", pattern)
+                put("format", format)
+            })
         }
 
         fun boolean(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "boolean"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.BOOLEAN.typeName)
+                put("title", title)
+                put("description", description)
+            })
         }
 
         fun number(
@@ -154,17 +137,16 @@ open class Schema(val value: MutableMap<String, Any>) {
             exclusiveMaximum: Number? = null,
             multipleOf: Number? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "number"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "minimum", minimum)
-            putIfNotNull(map, "maximum", maximum)
-            putIfNotNull(map, "exclusiveMinimum", exclusiveMinimum)
-            putIfNotNull(map, "exclusiveMaximum", exclusiveMaximum)
-            putIfNotNull(map, "multipleOf", multipleOf)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.NUM.typeName)
+                put("title", title)
+                put("description", description)
+                put("minimum", minimum)
+                put("maximum", maximum)
+                put("exclusiveMinimum", exclusiveMinimum)
+                put("exclusiveMaximum", exclusiveMaximum)
+                put("multipleOf", multipleOf)
+            })
         }
 
         fun integer(
@@ -176,17 +158,16 @@ open class Schema(val value: MutableMap<String, Any>) {
             exclusiveMaximum: Int? = null,
             multipleOf: Number? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "integer"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "minimum", minimum)
-            putIfNotNull(map, "maximum", maximum)
-            putIfNotNull(map, "exclusiveMinimum", exclusiveMinimum)
-            putIfNotNull(map, "exclusiveMaximum", exclusiveMaximum)
-            putIfNotNull(map, "multipleOf", multipleOf)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.INT.typeName)
+                put("title", title)
+                put("description", description)
+                put("minimum", minimum)
+                put("maximum", maximum)
+                put("exclusiveMinimum", exclusiveMinimum)
+                put("exclusiveMaximum", exclusiveMaximum)
+                put("multipleOf", multipleOf)
+            })
         }
 
         fun list(
@@ -202,21 +183,21 @@ open class Schema(val value: MutableMap<String, Any>) {
             maxItems: Int? = null,
             uniqueItems: Boolean? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "array"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "items", items?.toMap())
-            putIfNotNull(map, "prefixItems", prefixItems?.map { it.toMap() })
-            putIfNotNull(map, "unevaluatedItems", normalizeSchemaLike(unevaluatedItems))
-            putIfNotNull(map, "contains", contains?.toMap())
-            putIfNotNull(map, "minContains", minContains)
-            putIfNotNull(map, "maxContains", maxContains)
-            putIfNotNull(map, "minItems", minItems)
-            putIfNotNull(map, "maxItems", maxItems)
-            putIfNotNull(map, "uniqueItems", uniqueItems)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.LIST.typeName)
+                put("title", title)
+                put("description", description)
+                put("items", items?.value ?: JsonNull)
+                put("prefixItems", prefixItems.toSchemaJsonArray())
+                put("unevaluatedItems", unevaluatedItems.toJsonElement())
+                put("contains", contains?.value ?: JsonNull)
+                put("minContains", minContains)
+                put("maxContains", maxContains)
+                put("minItems", minItems)
+                put("maxItems", maxItems)
+                put("uniqueItems", uniqueItems)
+
+            })
         }
 
         fun obj(
@@ -232,43 +213,41 @@ open class Schema(val value: MutableMap<String, Any>) {
             minProperties: Int? = null,
             maxProperties: Int? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "object"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            putIfNotNull(map, "properties", properties?.mapValues { it.value.toMap() })
-            putIfNotNull(map, "patternProperties", patternProperties?.mapValues { it.value.toMap() })
-            putIfNotNull(map, "required", required)
-            putIfNotNull(map, "dependentRequired", dependentRequired)
-            putIfNotNull(map, "additionalProperties", normalizeSchemaLike(additionalProperties))
-            putIfNotNull(map, "unevaluatedProperties", normalizeSchemaLike(unevaluatedProperties))
-            putIfNotNull(map, "propertyNames", propertyNames?.toMap())
-            putIfNotNull(map, "minProperties", minProperties)
-            putIfNotNull(map, "maxProperties", maxProperties)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.OBJECT.typeName)
+                put("title", title)
+                put("description", description)
+                put("properties", properties.toJsonObject())
+                put("patternProperties", patternProperties.toJsonObject())
+                put("required", required.toJsonArray())
+                put("dependentRequired", dependentRequired.toJsonObject())
+                put("additionalProperties", additionalProperties.toJsonElement())
+                put("unevaluatedProperties", unevaluatedProperties.toJsonElement())
+                put("propertyNames", propertyNames?.value ?: JsonNull)
+                put("minProperties", minProperties)
+                put("maxProperties", maxProperties)
+            })
         }
 
         fun nil(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>(
-                "type" to "null"
-            )
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("type", JsonType.NIL.typeName)
+                put("title", title)
+                put("description", description)
+            })
         }
 
         fun any(
             title: String? = null,
             description: String? = null,
         ): Schema {
-            val map = mutableMapOf<String, Any>()
-            putIfNotNull(map, "title", title)
-            putIfNotNull(map, "description", description)
-            return Schema(map)
+            return Schema(buildJsonObject {
+                put("title", title)
+                put("description", description)
+            })
         }
 
         fun fromBoolean(
@@ -276,9 +255,12 @@ open class Schema(val value: MutableMap<String, Any>) {
             jsonPath: List<String> = emptyList(),
         ): Schema {
             return if (value) {
-                Schema(mutableMapOf())
+                Schema(JsonObject(mapOf()))
             } else {
-                Schema(mutableMapOf("not" to emptyMap<String, Any?>()))
+                Schema(
+                    buildJsonObject {
+                        put("not", JsonObject(mapOf()))
+                    })
             }
         }
 
@@ -305,9 +287,10 @@ open class Schema(val value: MutableMap<String, Any>) {
 
     fun schemaOrBool(key: String): Schema? {
         val v = value[key] ?: return null
-        return when (v) {
-            is Boolean -> fromBoolean(v, listOf(key))
-            is Map<*, *> -> {
+        return when {
+            v is JsonPrimitive && (v.booleanOrNull != null) -> fromBoolean(v.booleanOrNull!!)
+            v is JsonObject -> Schema(v)
+            v is Map<*, *> -> {
                 @Suppress("UNCHECKED_CAST")
                 fromMap(v as Map<String, Any>)
             }
@@ -415,7 +398,7 @@ open class Schema(val value: MutableMap<String, Any>) {
         get() = mapToSchemaOrBool("dependentSchemas")
 
     fun toJson(indent: String? = null): String {
-        val jsonElement = toJsonElement(value)
+        val jsonElement = value
         return if (indent != null) {
             Json {
                 prettyPrint = true
@@ -425,26 +408,26 @@ open class Schema(val value: MutableMap<String, Any>) {
             Json.encodeToString(JsonElement.serializer(), jsonElement)
         }
     }
+}
 
-    private fun toJsonElement(any: Any?): JsonElement {
-        return when (any) {
-            null -> JsonNull
-            is String -> JsonPrimitive(any)
-            is Boolean -> JsonPrimitive(any)
-            is Int -> JsonPrimitive(any)
-            is Long -> JsonPrimitive(any)
-            is Float -> JsonPrimitive(any)
-            is Double -> JsonPrimitive(any)
-            is Number -> JsonPrimitive(any)
-            is Schema -> toJsonElement(any.toMap())
-            is Map<*, *> -> JsonObject(
-                any.entries.associate { (k, v) ->
-                    k.toString() to toJsonElement(v)
-                }
-            )
+fun Map<String, Schema>?.toJsonElement(): JsonElement {
+    if (this == null) {
+        return JsonNull
+    }
+    return buildJsonObject {
+        for ((key, value) in this@toJsonElement) {
+            put(key, value.value)
+        }
+    }
+}
 
-            is List<*> -> JsonArray(any.map { toJsonElement(it) })
-            else -> JsonPrimitive(any.toString())
+fun List<Schema>?.toSchemaJsonArray(): JsonElement {
+    if (this == null) {
+        return JsonNull
+    }
+    return buildJsonArray {
+        for (value in this@toSchemaJsonArray) {
+            add(value.value)
         }
     }
 }
