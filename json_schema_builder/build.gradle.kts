@@ -30,6 +30,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.ktor.client.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
