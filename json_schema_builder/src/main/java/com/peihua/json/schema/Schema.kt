@@ -25,7 +25,7 @@ typealias S = Schema
 open class Schema(val value: JsonObject) {
 
     companion object {
-        fun fromMap(map: Map<String, Any>): Schema {
+        fun fromMap(map: Map<String, Any?>): Schema {
             return Schema(map.toJsonObject())
         }
 
