@@ -1,0 +1,136 @@
+task cleanAllModule {
+    group = 'clean'
+    description = 'Clean all module'
+    // 遍历所有模块，并清除build 目录
+    delete rootProject.buildDir
+    delete subprojects.buildDir
+}
+task installDebugApk {
+    group = 'install-apk'
+    description = 'Clean, install and launch app'
+    dependsOn 'cleanAllModule'
+    dependsOn 'clean'
+    dependsOn 'assembleDebug'
+    doLast {
+        // 只有 clean 和 installDebug 都成功了，才会执行到这里
+        def apkDir = file("${buildDir}/outputs/apk/debug/")
+        def apkFile = apkDir.listFiles().find { it.name.endsWith('.apk') && it.name.startsWith('app-') }
+        def apkPath = apkFile.absolutePath
+        def adb = android.getAdbExecutable().toString()
+        def pkg = android.defaultConfig.applicationId
+        def act = ".MainActivity"
+        println "adb: ${adb}"
+        def deviceId = findFirstDeviceId(adb)
+        if (deviceId.empty) {
+            println "No connected devices found"
+            return
+        }
+        exec { executable adb; args "-s",deviceId,"install", "-d", "-r","-t", "$apkPath" }
+        exec { executable adb; args "-s",deviceId,"shell", "am", "start", "-n", "${pkg}/${act}" }
+    }
+}
+
+task installReleaseApk {
+    group = 'install-apk'
+    description = 'Clean, install and launch app'
+
+    dependsOn 'clean'
+    dependsOn 'assembleRelease'
+    doLast {
+        // 只有 clean 和 installDebug 都成功了，才会执行到这里
+        def apkDir = file("${buildDir}/outputs/apk/release/")
+        def apkFile = apkDir.listFiles().find { it.name.endsWith('.apk') && it.name.startsWith('app-') }
+        def apkPath = apkFile.absolutePath
+        def adb = android.getAdbExecutable().toString()
+        def pkg = android.defaultConfig.applicationId
+        def act = ".MainActivity"
+//        installAndLaunchOnAllDevices(apkPath)
+        def deviceId = findFirstDeviceId(adb)
+        if (deviceId.empty) {
+            println "No connected devices found"
+            return
+        }
+        exec { executable adb; args "-s",deviceId,"install", "-d", "-r", "$apkPath" }
+        exec { executable adb; args "-s",deviceId,"shell", "am", "start", "-n", "${pkg}/${act}" }
+    }
+}
+
+// 获取已连接的设备列表
+def getConnectedDevices(adbPath) {
+    def deviceListOutput = new ByteArrayOutputStream()
+    exec {
+        executable adbPath
+        args "devices"
+        standardOutput = deviceListOutput
+    }
+
+    // 解析设备ID列表（跳过第一行标题行）
+    return deviceListOutput.toString().readLines().drop(1).collect {
+        it.split('\\s+')[0]
+    }.findAll { it }
+}
+
+// 在指定设备上安装并启动APK
+def installAndLaunchOnDevice(adbPath, deviceId, apkPath, packageName, mainActivity) {
+    println "Processing device: $deviceId"
+    try {
+        // 安装APK
+        exec {
+            executable adbPath
+            args "-s", deviceId, "install", "-d", "-r", apkPath
+        }
+
+        // 启动应用
+        exec {
+            executable adbPath
+            args "-s", deviceId, "shell", "am", "start", "-n", "${packageName}/${mainActivity}"
+        }
+        println "Successfully installed and launched on $deviceId"
+    } catch (Exception e) {
+        println "Failed to install on device $deviceId: ${e.message}"
+    }
+}
+
+// 在所有设备上安装并启动APK
+def installAndLaunchOnAllDevices(apkPath) {
+    def adb = android.getAdbExecutable().toString()
+    def pkg = android.defaultConfig.applicationId
+    def mainActivity = ".MainActivity"
+
+    def devices = getConnectedDevices(adb)
+    if (devices.empty) {
+        println "No connected devices found"
+        return
+    }
+
+    devices.each { deviceId ->
+        installAndLaunchOnDevice(adb, deviceId, apkPath, pkg, mainActivity)
+    }
+}
+def findFirstDeviceId(adb){
+    def devices = getConnectedDevices(adb)
+    if (devices.empty) {
+        println "No connected devices found"
+        return ""
+    }
+    return devices[0]
+}
+
+def findDeviceIds(adb){
+    def devices = getConnectedDevices(adb)
+    if (devices.empty) {
+        println "No connected devices found"
+        return new ArrayList<String>()
+    }
+    return devices
+}
+
+// Android plugin 的 variant 任务(assembleDebug/assembleRelease)是延迟创建的，
+// 需要在 afterEvaluate 中设置 mustRunAfter 来控制执行顺序
+afterEvaluate {
+    // installDebugApk: cleanAllModule -> clean -> assembleDebug
+    clean.mustRunAfter cleanAllModule
+    assembleDebug.mustRunAfter clean
+    // installReleaseApk: clean -> assembleRelease
+    assembleRelease.mustRunAfter clean
+}
